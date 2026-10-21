@@ -2897,7 +2897,7 @@
               {
                 "name": "label",
                 "type": "String",
-                "value": "serviceId"
+                "value": "Услуга (ID)"
               },
               {
                 "name": "name",
@@ -2946,7 +2946,7 @@
               {
                 "name": "label",
                 "type": "String",
-                "value": "masterId"
+                "value": "Мастер (ID)"
               },
               {
                 "name": "name",
@@ -2995,7 +2995,7 @@
               {
                 "name": "label",
                 "type": "String",
-                "value": "clientName"
+                "value": "Ваше имя"
               },
               {
                 "name": "name",
@@ -3044,7 +3044,7 @@
               {
                 "name": "label",
                 "type": "String",
-                "value": "clientPhone"
+                "value": "Телефон"
               },
               {
                 "name": "name",
@@ -3093,7 +3093,7 @@
               {
                 "name": "label",
                 "type": "String",
-                "value": "startsAt"
+                "value": "Дата и время"
               },
               {
                 "name": "name",
@@ -3142,7 +3142,7 @@
               {
                 "name": "label",
                 "type": "String",
-                "value": "status"
+                "value": "Статус"
               },
               {
                 "name": "name",
@@ -3191,7 +3191,7 @@
               {
                 "name": "label",
                 "type": "String",
-                "value": "notes"
+                "value": "Комментарий"
               },
               {
                 "name": "name",
@@ -3234,7 +3234,7 @@
               {
                 "name": "label",
                 "type": "String",
-                "value": "Add",
+                "value": "Записаться",
                 "defaultValue": "Button"
               },
               {
@@ -3478,7 +3478,7 @@
               {
                 "name": "text",
                 "type": "String",
-                "value": "Заготовка: здесь будет список услуг. API-клиент для него уже есть в telegram/src/api."
+                "value": "Услуги салона:\n{result.name}"
               }
             ],
             "metadata": {
@@ -3502,6 +3502,11 @@
                 "name": "name",
                 "type": "String",
                 "value": "services"
+              },
+              {
+                "name": "calls",
+                "type": "Reference",
+                "value": "7cd4621d-5d97-462b-9d38-94078571a942"
               }
             ],
             "metadata": {
@@ -3715,6 +3720,24 @@
               "version": "0.0.0",
               "createdAt": "2026-10-21T15:09:46.246Z",
               "updatedAt": "2026-10-21T15:09:46.246Z",
+              "tags": []
+            }
+          },
+          {
+            "id": "3fe19d46-95bb-4de0-9988-c8ddb9e9efd3",
+            "type": "Dependency",
+            "from": {
+              "blockId": "f81ea98c-168a-4c56-91d1-fd51b5826b2e",
+              "port": "calls"
+            },
+            "to": {
+              "blockId": "7cd4621d-5d97-462b-9d38-94078571a942",
+              "port": "calls"
+            },
+            "metadata": {
+              "version": "0.0.0",
+              "createdAt": "2026-10-21T19:15:50.000Z",
+              "updatedAt": "2026-10-21T19:15:50.000Z",
               "tags": []
             }
           }

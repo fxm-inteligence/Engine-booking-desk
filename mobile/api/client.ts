@@ -2,6 +2,10 @@
 // http://10.0.2.2:<port>; a phone reaches it at the computer's address on the network.
 export const API_URL = "http://localhost:3000";
 
+// The key that opens the backend's guarded routes, sent as `x-api-key`: set EXPO_PUBLIC_API_KEY to
+// the same text as the key in the backend's .env. Anyone can take a key out of an installed app, so use it only for routes that hold nothing secret; for a person's own data sign the person in instead, and the token goes with every request.
+export const API_KEY: string = process.env.EXPO_PUBLIC_API_KEY ?? "";
+
 let sessionToken: string | null = null;
 
 export function getToken(): string | null {
@@ -36,6 +40,7 @@ function unwrap(value: unknown): unknown {
 export async function request(path: string, options: RequestOptions = {}): Promise<unknown> {
   const headers: Record<string, string> = {};
   if (options.json !== undefined) headers["Content-Type"] = "application/json";
+  if (API_KEY) headers["x-api-key"] = API_KEY;
   if (sessionToken) headers["Authorization"] = `Bearer ${sessionToken}`;
   const response = await fetch(apiUrl(path), {
     method: options.method ?? "GET",

@@ -1,5 +1,9 @@
 const API_URL = process.env.API_URL ?? "http://localhost:3000";
 
+// The key that opens the backend's guarded routes, sent as `x-api-key`: the same text as the key in
+// the backend's .env. The bot runs on your server, so the key stays with you. Left empty, none is sent.
+const API_KEY = process.env.API_KEY ?? "";
+
 function apiUrl(path: string): string {
   return path.startsWith("http://") || path.startsWith("https://") ? path : `${API_URL}${path}`;
 }
@@ -26,6 +30,7 @@ function unwrap(value: unknown): unknown {
 export async function request(path: string, options: RequestOptions = {}): Promise<unknown> {
   const headers: Record<string, string> = {};
   if (options.json !== undefined) headers["Content-Type"] = "application/json";
+  if (API_KEY) headers["x-api-key"] = API_KEY;
   if (options.token) headers["Authorization"] = `Bearer ${options.token}`;
   const response = await fetch(apiUrl(path), {
     method: options.method ?? "GET",

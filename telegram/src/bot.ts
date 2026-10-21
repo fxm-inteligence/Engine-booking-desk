@@ -1,3 +1,5 @@
+import { listServices } from "./api/endpoints";
+import { formatResult } from "./api/format";
 import { Telegraf } from "telegraf";
 
 export const bot = new Telegraf(process.env.BOT_TOKEN ?? "");
@@ -11,7 +13,8 @@ bot.command("start", async (ctx) => {
 });
 
 bot.command("services", async (ctx) => {
-  await ctx.reply("Заготовка: здесь будет список услуг. API-клиент для него уже есть в telegram/src/api.");
+  const result = await listServices();
+  await ctx.reply("Услуги салона:\n" + formatResult(result, "name"));
 });
 
 bot.command("book", async (ctx) => {
