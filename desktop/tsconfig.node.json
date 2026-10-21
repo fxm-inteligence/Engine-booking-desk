@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "composite": true,
+    "emitDeclarationOnly": true,
+    "outDir": "./node_modules/.tmp/tsconfig.node"
+  },
+  "include": ["electron", "vite.config.ts"]
+}

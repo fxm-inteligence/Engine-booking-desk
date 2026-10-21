@@ -1,0 +1,36 @@
+name: "Build"
+on:
+  push:
+    branches:
+      - "main"
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build Project (frontend)"
+        run: "(cd frontend && npm install && npm run build --if-present)"
+      - name: "Build Project (backend)"
+        run: "(cd backend && npm install && npm run build --if-present)"
+      - name: "Build Project (mobile)"
+        run: "(cd mobile && npm install && npm run typecheck)"
+      - name: "Build Project (telegram)"
+        run: "(cd telegram && npm install && npm run build)"
+      - name: "Build Project (desktop)"
+        run: "(cd desktop && npm install && npm run build --if-present)"
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Run Tests (frontend)"
+        run: "(cd frontend && npm install && npm test --if-present)"
+      - name: "Run Tests (backend)"
+        run: "(cd backend && npm install && npm test --if-present)"
+      - name: "Run Tests (mobile)"
+        run: "(cd mobile && npm install && npm test --if-present)"
+      - name: "Run Tests (telegram)"
+        run: "(cd telegram && npm install && npm test --if-present)"
+      - name: "Run Tests (desktop)"
+        run: "(cd desktop && npm install && npm test --if-present)"
