@@ -1,69 +1,166 @@
 # Booking Desk
 
-Образец большого проекта, сгенерированного в FxM Engine без ручных правок после генерации: онлайн-запись клиентов для сервисного бизнеса (салон, барбершоп, студия). Репозиторий нужен, чтобы увидеть, что Engine собирает не отдельные куски, а все части продукта сразу, и оценить код до регистрации и оплаты.
+[![CI](https://github.com/fxm-inteligence/Engine-booking-desk/actions/workflows/build.yml/badge.svg)](https://github.com/fxm-inteligence/Engine-booking-desk/actions/workflows/build.yml)
 
-**Что внутри (все восемь разделов Engine)**
+Образец большого проекта, сгенерированного в FxM Engine **без ручных правок после генерации**: онлайн-запись клиентов для сервисного бизнеса (салон, барбершоп, студия). Он показывает, что Engine собирает не отдельные куски, а все части продукта сразу, и даёт оценить код до регистрации и оплаты.
 
-| Часть | Папка | Что это |
+Это **каркас, а не готовый продукт**. Раздел «Чего здесь нет» ниже стоит прочитать до того, как вы начнёте сравнивать с готовыми сервисами записи.
+
+## Содержание
+
+- [Что внутри](#что-внутри)
+- [Что работает сейчас](#что-работает-сейчас)
+- [Что проверено](#что-проверено)
+- [Чего здесь нет](#чего-здесь-нет)
+- [Быстрый старт: сайт, сервер и база](#быстрый-старт-сайт-сервер-и-база)
+- [Остальные части](#остальные-части)
+- [API](#api)
+- [Структура репозитория](#структура-репозитория)
+- [Куда писать свой код](#куда-писать-свой-код)
+- [Откуда это взялось](#откуда-это-взялось)
+
+## Что внутри
+
+Все восемь разделов Engine в одном репозитории:
+
+| Часть | Папка | Технологии | Что это |
+|---|---|---|---|
+| База данных | `database/` | Prisma, PostgreSQL | Таблицы услуг, мастеров, клиентов и записей |
+| Сервер | `backend/` | NestJS | CRUD по четырём ресурсам: `Service`, `Master`, `Client`, `Booking`; защита ключом, Swagger, ограничение частоты запросов |
+| Сайт | `frontend/` | React, Vite, Tailwind | Четыре страницы: услуги, мастера, клиенты, записи |
+| Telegram-бот | `telegram/` | Telegraf | Команды `/start`, `/services`, `/book`, `/mybookings` и клиент для API |
+| Мобильное приложение | `mobile/` | React Native, Expo | Экран «Записи на сегодня» для мастера и клиент для API |
+| Приложение для компьютера | `desktop/` | Electron, Vite | Окно стойки администратора, меню, значок в трее |
+| Облачные серверы | `infrastructure/` | Terraform (AWS) | Кластер ECS, контейнер сервера, управляемая база, хранилище |
+| Сборка и выпуск | `.github/workflows/` | GitHub Actions | Сборка и тесты всех частей на каждый push в `main` |
+
+## Что работает сейчас
+
+Только то, что генератор подключает сам. Остальное — заготовки (см. следующий раздел).
+
+- **Сервер.** Создание, чтение, изменение и удаление услуг, мастеров, клиентов и записей. Клиент может создать запись без ключа (`POST /bookings`), услуги и мастера читаются без ключа, всё остальное требует ключа.
+- **Сайт.** Страницы «Услуги» и «Мастера» показывают таблицы с сервера (читаются без ключа). Страница «Записи» содержит форму создания записи, которая работает без ключа. Страница «Клиенты» пустая: список клиентов защищён ключом, а страница ключ не отправляет, чтобы он не попал в браузер, поэтому генератор оставил её без содержимого. У формы записи поля без подписей и подсказок (генератор для React + Vite подписи текстовых полей не выводит), кнопка называется `Add`.
+- **Бот, мобильное приложение, десктоп.** Запускаются и показывают заготовки: ответы бота на команды, экран с заголовком и кнопкой, окно с заголовком и кнопкой.
+
+## Что проверено
+
+- `cd backend && npm install && npm test`: **36 тестов, все проходят, база данных не нужна** (по 8 тестов на сервис каждого из четырёх ресурсов: создание, список, чтение, изменение, удаление, ответ 404 для несуществующего id; плюс 4 теста на разбор параметров списка `q`, `sort`, `offset`, `limit`). Тесты работают на репозитории в памяти.
+- **GitHub Actions** на каждый push в `main`: собирает сайт, сервер, мобильное приложение (проверка типов), бота и десктоп, затем запускает тесты. Результат виден в значке выше и во вкладке Actions.
+
+## Чего здесь нет
+
+Честный список, чтобы вы не нашли это сами и не разочаровались:
+
+- **Бизнес-логики нет.** Нет проверки «слот свободен», нет напоминаний, нет уведомлений мастеру, нет оплаты. Её дописывает разработчик (см. [Куда писать свой код](#куда-писать-свой-код)).
+- **Заготовки не подключены к API.** Команды бота отвечают фиксированным текстом, у мобильного экрана и десктопного окна нет списка записей. Клиенты для API сгенерированы (`telegram/src/api`, `mobile/api`), но ни к одной команде и кнопке не привязаны. У десктопа клиента для API нет.
+- **Клиенты бота и мобильного не знают про ключ сервера.** Защищённые маршруты ждут заголовок `x-api-key`, а сгенерированные клиенты отправляют только `Authorization: Bearer`. Чтобы бот или телефон читали защищённые списки, клиент нужно доработать.
+- **Нет настоящих связей между таблицами.** У записи поля `serviceId` и `masterId` — обычные строки, а не ссылки на услугу и мастера.
+- **Нет входа и ролей.** Весь доступ к защищённому — один общий ключ.
+- **Тесты есть только у сервера.** У сайта, мобильного приложения, десктопа и бота тестов нет (CI их только собирает). Тестов с настоящей базой данных и HTTP-слоем нет.
+- **Мобильное приложение проверено только типами**, на телефоне и в эмуляторе оно не запускалось.
+- **Десктоп собирается, но окно не запускалось** и установщик (`npm run dist`) не проверялся.
+- **Terraform не проверялся** командой `terraform validate` и не применялся к реальному аккаунту. Перед `apply` проверьте регион, образ контейнера и стоимость.
+- **Сайт на React + Vite, а не на Next.js.** Десктопное приложение Engine собирается только поверх такого сайта, а в одном проекте они должны сочетаться.
+
+## Быстрый старт: сайт, сервер и база
+
+Нужен [Docker Desktop](https://www.docker.com/products/docker-desktop/) (бесплатный).
+
+1. Скопируйте `backend/.env.example` в `backend/.env` и впишите в `ADMIN_KEY` длинный случайный текст на ваш вкус. Без него все защищённые маршруты отвечают отказом. Без файла `backend/.env` проект всё равно запустится.
+2. В корне репозитория выполните:
+
+   ```bash
+   docker compose up --build
+   ```
+
+   Первый запуск занимает несколько минут.
+3. Откройте сайт: http://localhost:80. Сервер отвечает на http://localhost:3000, документация API (Swagger) — на http://localhost:3000/docs.
+4. Остановить: `Ctrl+C`. Повторный `docker compose up` запустит всё снова, данные сохранятся.
+
+Если что-то не работает, выполните `docker compose logs`. Порты и пароль базы меняются переменными `FRONTEND_PORT`, `BACKEND_PORT`, `POSTGRES_PASSWORD`.
+
+## Остальные части
+
+Бот, мобильное приложение и десктоп в `docker compose` не входят. Им нужен запущенный сервер.
+
+**Telegram-бот**
+
+```bash
+cd telegram
+cp .env.example .env     # впишите BOT_TOKEN от @BotFather; API_URL указывает на сервер
+npm install
+npm run start:dev
+```
+
+**Мобильное приложение**
+
+```bash
+cd mobile
+npm install
+npm start                # откроется Expo
+```
+
+Адрес сервера задан в `mobile/api/client.ts` (`API_URL`). Для эмулятора Android это `http://10.0.2.2:3000`, для телефона — адрес компьютера в вашей сети.
+
+**Десктоп**
+
+```bash
+cd desktop
+npm install
+npm run dev
+```
+
+Сборка установщика: `npm run dist`.
+
+**Сайт без Docker**
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Адрес сервера задаётся переменной `VITE_API_URL` (по умолчанию `http://localhost:3000`, см. `frontend/.env.example`).
+
+**Облачные серверы**
+
+В `infrastructure/` лежат файлы Terraform. Прочитайте их и проверьте через `terraform validate`, прежде чем применять.
+
+## API
+
+Полное описание и пробные запросы — в Swagger: `/docs` на сервере. Кратко:
+
+| Ресурс | Без ключа | С ключом `x-api-key` |
 |---|---|---|
-| База данных | `database/` | Prisma + PostgreSQL: услуги, мастера, клиенты, записи |
-| Сервер | `backend/` | NestJS: CRUD по четырём ресурсам (`Service`, `Master`, `Client`, `Booking`), защита ключом API, Swagger |
-| Сайт | `frontend/` | React + Vite: страницы со списками и формой записи |
-| Telegram-бот | `telegram/` | Telegraf: команды `/start`, `/services`, `/book`, `/mybookings` и клиент для API |
-| Мобильное приложение | `mobile/` | React Native (Expo): экран «Записи на сегодня» для мастера |
-| Приложение для компьютера | `desktop/` | Electron: окно стойки администратора, меню, значок в трее |
-| Облачные серверы | `infrastructure/` | Terraform (AWS): кластер, база данных, хранилище |
-| Сборка и выпуск | `.github/workflows/` | GitHub Actions: сборка и тесты всех частей на каждый push в `main` |
+| `/services` | `GET /services`, `GET /services/:id` | `POST`, `PUT /:id`, `DELETE /:id` |
+| `/masters` | `GET /masters`, `GET /masters/:id` | `POST`, `PUT /:id`, `DELETE /:id` |
+| `/clients` | ничего | всё |
+| `/bookings` | `POST /bookings` | `GET`, `GET /:id`, `PUT /:id`, `DELETE /:id` |
 
-**Что проверено**
+Ключ — это значение `ADMIN_KEY` из `backend/.env`. Список поддерживает параметры `q` (поиск), `sort`, `offset`, `limit`. Частота запросов ограничена: `RATE_LIMIT_MAX` в минуту с одного адреса (по умолчанию 100).
 
-- `cd backend && npm install && npm test`: 36 тестов, все проходят, база данных не нужна (по 8 тестов на сервис каждого из четырёх ресурсов и 4 на разбор параметров списка).
-- Сайт, сервер, бот и десктоп собираются (`npm run build`), у мобильного проходит `npm run typecheck`. Всё это выполняет GitHub Actions на каждый push.
+## Структура репозитория
 
-**Чего здесь нет (честно)**
+```
+.
+├── .github/workflows/   CI: сборка и тесты всех частей
+├── backend/             NestJS, тесты в src/**/*.test.ts, запуск тестов: src/run-tests.ts
+├── database/            schema.prisma
+├── frontend/            React + Vite (страницы в src/pages)
+├── telegram/            Telegraf (команды в src/bot.ts, клиент API в src/api)
+├── mobile/              React Native + Expo (экраны в screens, клиент API в api)
+├── desktop/             Electron + Vite (процессы в electron, интерфейс в src)
+├── infrastructure/      Terraform
+├── docker-compose.yml   сайт + сервер + база
+└── project.json         описание проекта (блоки и связи) в формате FxM Engine
+```
 
-- Это каркас, а не готовый продукт. Бизнес-логики нет: проверки «слот свободен», напоминаний и уведомлений мастеру в проекте нет, её дописывает разработчик в файлах `*.hooks.ts` (повторная генерация их не перезаписывает).
-- Команды бота отвечают заготовками, экран мобильного приложения и окно десктопа показывают заголовок и кнопку без списка записей. API-клиенты для них сгенерированы, но к кнопкам и командам не подключены.
-- У записи нет настоящих связей с услугой и мастером: поля `serviceId` и `masterId` обычные строки.
-- Тесты есть только у сервера. У сайта, мобильного, десктопа и бота тестов нет, как и тестов с настоящей базой данных и HTTP-слоем.
-- Мобильное приложение проверено только типами, на телефоне и в эмуляторе не запускалось. Десктоп собирается, но установщик (`npm run dist`) не проверялся.
-- Файлы Terraform не проверялись командой `terraform validate` и не применялись к реальному аккаунту.
-- Сайт сделан на React + Vite, а не на Next.js: десктопное приложение Engine собирается только поверх такого сайта.
+## Куда писать свой код
 
-## Как запустить части
+Рядом с каждым сервисом сервера лежит файл `*.hooks.ts` (например, `backend/src/booking-service/booking-service.hooks.ts`). Он создан пустым, и повторная генерация в Engine его **не перезаписывает**. Хуки выполняются до и после методов сервиса: в `before` можно отказать в вызове (например, если слот занят), в `after` изменить ответ. Здесь же добавляются напоминания и уведомления.
 
-- Сервер и сайт: `docker compose up --build` (подробнее ниже).
-- Бот: `cd telegram && cp .env.example .env`, вписать `BOT_TOKEN` от @BotFather, затем `npm install && npm run start:dev`.
-- Мобильное: `cd mobile && npm install && npm start`.
-- Десктоп: `cd desktop && npm install && npm run dev`.
+Всё остальное — обычный код проекта: его можно открыть в любой среде, закоммитить в Git и развивать дальше без Engine.
 
----
+## Откуда это взялось
 
-# Booking Desk
-
-Generated by FxM Engine. This project can be opened in any IDE, committed to
-Git, and developed further without FxM Engine.
-
-## Modules
-
-- Database
-- Backend
-- Frontend
-- Telegram
-- Mobile
-- Desktop
-- Infrastructure
-- CI/CD
-
-## Run it
-
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) (free) and start it.
-2. Open a terminal in this folder.
-3. Copy `backend/.env.example` to `backend/.env` and fill in what your project needs: the keys of the services you use (for example an AI provider's key) and secrets you make up yourself (any long random text). Variables left empty are optional. Without `backend/.env` the project still starts, but features that need a key or secret stay switched off. The keys that guard your routes (`ADMIN_KEY`) are the exception: a guarded route refuses everyone until its key holds a long random text of your own, and a caller then sends the same text in the `x-api-key` header. A web page never carries such a key, so what the site shows or adds without it is only what the project marked as open to everyone.
-4. Run `docker compose up --build`. The first start takes a few minutes.
-5. Open http://localhost:80 for the site; the backend answers on http://localhost:3000.
-6. Stop with `Ctrl+C` in the terminal; `docker compose up` starts it again with your data kept.
-
-## If something does not work
-
-Run `docker compose logs` to see what went wrong. A line like `request failed: 401` from a service you connected means its key in `backend/.env` is missing or wrong; fix it and run `docker compose up -d` again.
+Проект собран в редакторе FxM Engine из блоков и сгенерирован нажатием кнопки «Сгенерировать». Файлы после генерации руками не правились. Добавлены только этот README и `.gitignore`, а файл сборки перенесён из `cicd/.github/workflows/` в `.github/workflows/`, где его ждёт GitHub. Это образец, который мы сделали сами для демонстрации, а не проект клиента.
