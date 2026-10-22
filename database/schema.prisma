@@ -41,11 +41,26 @@ model Booking {
   clientName String
   clientPhone String
   startsAt DateTime
-  status String?
+  status String? @default("new")
   notes String? @db.Text
   createdAt DateTime? @default(now())
   serviceId String @db.Uuid
   service Service @relation(fields: [serviceId], references: [id])
   masterId String @db.Uuid
   master Master @relation(fields: [masterId], references: [id])
+}
+
+model Account {
+  id String @id @default(uuid()) @db.Uuid
+  email String @unique
+  password String
+  role String @default("user")
+}
+
+model AuthToken {
+  id String @id @default(uuid()) @db.Uuid
+  userId String
+  kind String
+  tokenHash String @unique
+  expiresAt Float
 }

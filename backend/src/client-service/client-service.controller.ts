@@ -1,8 +1,8 @@
 import { TOTAL_COUNT_HEADER, parseListQuery } from "../list-query";
-import { AdminKeyGuard } from "./admin-key.guard";
 import { ClientService } from "./client-service.service";
 import { CreateClientRequestDto } from "./dto/create-client-request.dto";
 import { UpdateClientRequestDto } from "./dto/update-client-request.dto";
+import { StaffGuard } from "./staff.guard";
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { Response } from "express";
@@ -12,7 +12,7 @@ import { Response } from "express";
 export class ClientServiceController {
   constructor(private readonly clientService: ClientService) {}
 
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(StaffGuard)
   @Get("/clients")
   async listClients(@Query() query: Record<string, unknown>, @Res({ passthrough: true }) response: Response) {
     const page = await this.clientService.listClients(parseListQuery(query));
@@ -20,25 +20,25 @@ export class ClientServiceController {
     return page.items;
   }
 
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(StaffGuard)
   @Get("/clients/:id")
   getClient(@Param("id") id: string) {
     return this.clientService.getClient(id);
   }
 
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(StaffGuard)
   @Post("/clients")
   createClient(@Body() dto: CreateClientRequestDto) {
     return this.clientService.createClient(dto);
   }
 
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(StaffGuard)
   @Put("/clients/:id")
   updateClient(@Param("id") id: string, @Body() dto: UpdateClientRequestDto) {
     return this.clientService.updateClient(id, dto);
   }
 
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(StaffGuard)
   @Delete("/clients/:id")
   deleteClient(@Param("id") id: string) {
     return this.clientService.deleteClient(id);

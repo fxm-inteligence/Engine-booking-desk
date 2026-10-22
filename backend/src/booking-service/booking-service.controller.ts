@@ -1,8 +1,8 @@
 import { TOTAL_COUNT_HEADER, parseListQuery } from "../list-query";
-import { AdminKeyGuard } from "./admin-key.guard";
 import { BookingService } from "./booking-service.service";
 import { CreateBookingRequestDto } from "./dto/create-booking-request.dto";
 import { UpdateBookingRequestDto } from "./dto/update-booking-request.dto";
+import { StaffGuard } from "./staff.guard";
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { Response } from "express";
@@ -12,7 +12,7 @@ import { Response } from "express";
 export class BookingServiceController {
   constructor(private readonly bookingService: BookingService) {}
 
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(StaffGuard)
   @Get("/bookings")
   async listBookings(@Query() query: Record<string, unknown>, @Res({ passthrough: true }) response: Response) {
     const page = await this.bookingService.listBookings(parseListQuery(query));
@@ -20,7 +20,7 @@ export class BookingServiceController {
     return page.items;
   }
 
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(StaffGuard)
   @Get("/bookings/:id")
   getBooking(@Param("id") id: string) {
     return this.bookingService.getBooking(id);
@@ -31,13 +31,13 @@ export class BookingServiceController {
     return this.bookingService.createBooking(dto);
   }
 
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(StaffGuard)
   @Put("/bookings/:id")
   updateBooking(@Param("id") id: string, @Body() dto: UpdateBookingRequestDto) {
     return this.bookingService.updateBooking(id, dto);
   }
 
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(StaffGuard)
   @Delete("/bookings/:id")
   deleteBooking(@Param("id") id: string) {
     return this.bookingService.deleteBooking(id);

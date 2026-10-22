@@ -4,7 +4,9 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import MastersPage from "./pages/MastersPage";
 import ClientsPage from "./pages/ClientsPage";
+import BookPage from "./pages/BookPage";
 import BookingsPage from "./pages/BookingsPage";
+import LoginPage from "./pages/LoginPage";
 
 /** Writes a Page's title and meta tags into the document head when its route opens. */
 function SeoOnOpen({ apply }: { apply: () => void }) {
@@ -19,7 +21,9 @@ export default function App() {
         <Route path="/" element={<><SeoOnOpen apply={() => applyPageSeo({ title: "Services" })} /><HomePage /></>} />
         <Route path="/masters" element={<><SeoOnOpen apply={() => applyPageSeo({ title: "Masters" })} /><MastersPage /></>} />
         <Route path="/clients" element={<><SeoOnOpen apply={() => applyPageSeo({ title: "Clients" })} /><ClientsPage /></>} />
-        <Route path="/bookings" element={<><SeoOnOpen apply={() => applyPageSeo({ title: "Bookings" })} /><BookingsPage /></>} />
+        <Route path="/book" element={<><SeoOnOpen apply={() => applyPageSeo({ title: "Записаться" })} /><BookPage /></>} />
+        <Route path="/bookings" element={<><SeoOnOpen apply={() => applyPageSeo({ title: "Записи" })} /><BookingsPage /></>} />
+        <Route path="/login" element={<><SeoOnOpen apply={() => applyPageSeo({ title: "Вход" })} /><LoginPage /></>} />
       </Routes>
     </BrowserRouter>
   );

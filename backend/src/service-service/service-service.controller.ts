@@ -1,8 +1,8 @@
 import { TOTAL_COUNT_HEADER, parseListQuery } from "../list-query";
-import { AdminKeyGuard } from "./admin-key.guard";
 import { CreateServiceRequestDto } from "./dto/create-service-request.dto";
 import { UpdateServiceRequestDto } from "./dto/update-service-request.dto";
 import { ServiceService } from "./service-service.service";
+import { StaffGuard } from "./staff.guard";
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { Response } from "express";
@@ -24,19 +24,19 @@ export class ServiceServiceController {
     return this.serviceService.getService(id);
   }
 
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(StaffGuard)
   @Post("/services")
   createService(@Body() dto: CreateServiceRequestDto) {
     return this.serviceService.createService(dto);
   }
 
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(StaffGuard)
   @Put("/services/:id")
   updateService(@Param("id") id: string, @Body() dto: UpdateServiceRequestDto) {
     return this.serviceService.updateService(id, dto);
   }
 
-  @UseGuards(AdminKeyGuard)
+  @UseGuards(StaffGuard)
   @Delete("/services/:id")
   deleteService(@Param("id") id: string) {
     return this.serviceService.deleteService(id);

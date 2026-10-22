@@ -7,6 +7,7 @@ import { EMPTY, Observable } from "rxjs";
 import helmet from "helmet";
 import { AllExceptionsFilter } from "./all-exceptions.filter";
 import { AppModule } from "./app.module";
+import { authenticate, clearedSessionCookie } from "./auth-crypto";
 import { SanitizePipe } from "./sanitize.pipe";
 
 // Nest's `ws` adapter routes an incoming message by its `event` field; the
@@ -41,6 +42,18 @@ async function bootstrap() {
   app.getHttpAdapter().get("/health", (_req: unknown, res: { json(body: unknown): void }) =>
     res.json({ status: "ok" }),
   );
+  app.getHttpAdapter().get("/auth/session", (req: any, res: any) => {
+    const auth = authenticate(req.headers, req.method);
+    if (!auth.payload) {
+      res.status(auth.status).json({ error: auth.status === 401 ? "Unauthorized" : "Forbidden" });
+      return;
+    }
+    res.json({ authenticated: true });
+  });
+  app.getHttpAdapter().post("/auth/logout", (_req: unknown, res: any) => {
+    res.setHeader("Set-Cookie", clearedSessionCookie());
+    res.status(204).end();
+  });
 
   const swaggerConfig = new DocumentBuilder().setTitle("Backend API").setVersion("1.0.0").build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
