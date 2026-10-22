@@ -1,7 +1,7 @@
 import { useAppStore } from "../store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useApiWrite } from "@/lib/use-api-data";
+import { useApiData, useApiWrite } from "@/lib/use-api-data";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
@@ -26,13 +26,16 @@ export default function BookingsPage() {
     reset,
   } = useForm<BookingsPageFormValues>({ resolver: zodResolver(BookingsPageSchema) });
   const addSubmittedEntry = useAppStore((state) => state.addSubmittedEntry);
+  const servicesForBooking = useApiData<Record<string, unknown>[]>("/services");
+  const mastersForBooking = useApiData<Record<string, unknown>[]>("/masters");
   const addBooking = useApiWrite("/bookings", "POST");
 
   async function onSubmit(values: BookingsPageFormValues) {
     addSubmittedEntry(values);
     try {
       await addBooking.run(values);
-
+      await servicesForBooking.reload();
+      await mastersForBooking.reload();
       reset();
     } catch {
       // Surfaced through the Write Block's `error`.
@@ -42,7 +45,7 @@ export default function BookingsPage() {
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <label className="flex flex-col gap-1 text-sm"><span>Услуга (ID)</span><Input {...register("serviceId")} /></label>{errors.serviceId && <p className="text-red-500 text-sm">{errors.serviceId.message}</p>}<label className="flex flex-col gap-1 text-sm"><span>Мастер (ID)</span><Input {...register("masterId")} /></label>{errors.masterId && <p className="text-red-500 text-sm">{errors.masterId.message}</p>}<label className="flex flex-col gap-1 text-sm"><span>Ваше имя</span><Input {...register("clientName")} /></label>{errors.clientName && <p className="text-red-500 text-sm">{errors.clientName.message}</p>}<label className="flex flex-col gap-1 text-sm"><span>Телефон</span><Input {...register("clientPhone")} /></label>{errors.clientPhone && <p className="text-red-500 text-sm">{errors.clientPhone.message}</p>}<label className="flex flex-col gap-1 text-sm"><span>Дата и время</span><Input type="datetime-local" {...register("startsAt")} /></label>{errors.startsAt && <p className="text-red-500 text-sm">{errors.startsAt.message}</p>}<label className="flex flex-col gap-1 text-sm"><span>Статус</span><Input {...register("status")} /></label>{errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}<label className="flex flex-col gap-1 text-sm"><span>Комментарий</span><textarea className="rounded-md border px-3 py-2" {...register("notes")}></textarea></label>{errors.notes && <p className="text-red-500 text-sm">{errors.notes.message}</p>}<Button type="submit">Записаться</Button>
+        <label className="flex flex-col gap-1 text-sm"><span>Услуга</span><select className="rounded-md border px-3 py-2" {...register("serviceId")}><option value=""></option>{(servicesForBooking.data ?? []).map((row, index) => (<option key={index} value={String(row["id"] ?? "")}>{String(row["name"] ?? row["id"] ?? "")}</option>))}</select></label>{errors.serviceId && <p className="text-red-500 text-sm">{errors.serviceId.message}</p>}<label className="flex flex-col gap-1 text-sm"><span>Мастер</span><select className="rounded-md border px-3 py-2" {...register("masterId")}><option value=""></option>{(mastersForBooking.data ?? []).map((row, index) => (<option key={index} value={String(row["id"] ?? "")}>{String(row["name"] ?? row["id"] ?? "")}</option>))}</select></label>{errors.masterId && <p className="text-red-500 text-sm">{errors.masterId.message}</p>}<label className="flex flex-col gap-1 text-sm"><span>Ваше имя</span><Input {...register("clientName")} /></label>{errors.clientName && <p className="text-red-500 text-sm">{errors.clientName.message}</p>}<label className="flex flex-col gap-1 text-sm"><span>Телефон</span><Input {...register("clientPhone")} /></label>{errors.clientPhone && <p className="text-red-500 text-sm">{errors.clientPhone.message}</p>}<label className="flex flex-col gap-1 text-sm"><span>Дата и время</span><Input type="datetime-local" {...register("startsAt")} /></label>{errors.startsAt && <p className="text-red-500 text-sm">{errors.startsAt.message}</p>}<label className="flex flex-col gap-1 text-sm"><span>Статус</span><Input {...register("status")} /></label>{errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}<label className="flex flex-col gap-1 text-sm"><span>Комментарий</span><textarea className="rounded-md border px-3 py-2" {...register("notes")}></textarea></label>{errors.notes && <p className="text-red-500 text-sm">{errors.notes.message}</p>}<Button type="submit">Записаться</Button>
       </form>
     </motion.div>
   );

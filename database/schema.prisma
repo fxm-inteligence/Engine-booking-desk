@@ -16,6 +16,7 @@ model Service {
   price Float
   active Boolean?
   createdAt DateTime? @default(now())
+  bookings Booking[]
 }
 
 model Master {
@@ -24,6 +25,7 @@ model Master {
   specialty String?
   phone String?
   createdAt DateTime? @default(now())
+  bookings Booking[]
 }
 
 model Client {
@@ -36,12 +38,14 @@ model Client {
 
 model Booking {
   id String @id @default(uuid()) @db.Uuid
-  serviceId String
-  masterId String
   clientName String
   clientPhone String
   startsAt DateTime
   status String?
   notes String? @db.Text
   createdAt DateTime? @default(now())
+  serviceId String @db.Uuid
+  service Service @relation(fields: [serviceId], references: [id])
+  masterId String @db.Uuid
+  master Master @relation(fields: [masterId], references: [id])
 }

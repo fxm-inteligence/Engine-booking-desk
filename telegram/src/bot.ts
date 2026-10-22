@@ -13,7 +13,14 @@ bot.command("start", async (ctx) => {
 });
 
 bot.command("services", async (ctx) => {
-  const result = await listServices();
+  let result: unknown;
+  try {
+    result = await listServices();
+  } catch (error) {
+    console.error("The API call failed:", error);
+    await ctx.reply("The service is temporarily unavailable");
+    return;
+  }
   await ctx.reply("Услуги салона:\n" + formatResult(result, "name"));
 });
 

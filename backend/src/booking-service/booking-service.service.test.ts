@@ -36,7 +36,7 @@ function setup() {
 }
 
 function sample(): Row {
-  return { serviceId: "sample", masterId: "sample", clientName: "sample", clientPhone: "sample", startsAt: "2024-01-01T00:00:00.000Z", status: "sample", notes: "sample", createdAt: "2024-01-01T00:00:00.000Z" };
+  return { clientName: "sample", clientPhone: "sample", startsAt: "2024-01-01T00:00:00.000Z", status: "sample", notes: "sample", createdAt: "2024-01-01T00:00:00.000Z", serviceId: "00000000-0000-4000-8000-000000000001", masterId: "00000000-0000-4000-8000-000000000001" };
 }
 
 test("createBooking stores the record and answers with its id", async () => {
@@ -44,7 +44,7 @@ test("createBooking stores the record and answers with its id", async () => {
   const created = await service.createBooking(sample() as never);
   assert.notEqual(created.id, undefined);
   assert.equal(rows.size, 1);
-  assert.equal(created.serviceId, sample().serviceId);
+  assert.equal(created.clientName, sample().clientName);
 });
 
 test("listBookings answers with the stored records and their total", async () => {
@@ -70,13 +70,13 @@ test("getBooking answers 404 for an id that does not exist", async () => {
 test("updateBooking changes the stored record", async () => {
   const { service, rows } = setup();
   const created = await service.createBooking(sample() as never);
-  await service.updateBooking(created.id, { serviceId: "updated" } as never);
-  assert.equal(rows.get(created.id)?.serviceId, "updated");
+  await service.updateBooking(created.id, { clientName: "updated" } as never);
+  assert.equal(rows.get(created.id)?.clientName, "updated");
 });
 
 test("updateBooking answers 404 for an id that does not exist", async () => {
   const { service } = setup();
-  await assert.rejects(() => service.updateBooking("missing-id", { serviceId: "updated" } as never), NotFoundException);
+  await assert.rejects(() => service.updateBooking("missing-id", { clientName: "updated" } as never), NotFoundException);
 });
 
 test("deleteBooking removes the record", async () => {

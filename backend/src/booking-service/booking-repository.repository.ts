@@ -4,22 +4,20 @@ import type { ListQuery, Page } from "../list-query";
 
 export interface BookingRecord {
   id: string;
-  serviceId: string;
-  masterId: string;
   clientName: string;
   clientPhone: string;
   startsAt: Date;
   status?: string;
   notes?: string;
   createdAt?: Date;
+  serviceId: string;
+  masterId: string;
 }
 
 function searchWhere(search: string | undefined) {
   if (search === undefined) return undefined;
   return {
     OR: [
-      { serviceId: { contains: search, mode: "insensitive" as const } },
-      { masterId: { contains: search, mode: "insensitive" as const } },
       { clientName: { contains: search, mode: "insensitive" as const } },
       { clientPhone: { contains: search, mode: "insensitive" as const } },
       { status: { contains: search, mode: "insensitive" as const } },
@@ -33,10 +31,6 @@ function orderBy(sort: ListQuery["sort"]) {
   switch (sort?.field) {
     case "id":
       return [{ id: direction }];
-    case "serviceId":
-      return [{ serviceId: direction }, { id: "asc" as const }];
-    case "masterId":
-      return [{ masterId: direction }, { id: "asc" as const }];
     case "clientName":
       return [{ clientName: direction }, { id: "asc" as const }];
     case "clientPhone":
@@ -49,6 +43,10 @@ function orderBy(sort: ListQuery["sort"]) {
       return [{ notes: direction }, { id: "asc" as const }];
     case "createdAt":
       return [{ createdAt: direction }, { id: "asc" as const }];
+    case "serviceId":
+      return [{ serviceId: direction }, { id: "asc" as const }];
+    case "masterId":
+      return [{ masterId: direction }, { id: "asc" as const }];
     default:
       return [{ id: "asc" as const }];
   }

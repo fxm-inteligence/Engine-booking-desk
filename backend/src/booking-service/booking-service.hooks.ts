@@ -1,27 +1,35 @@
 // Yours: a Regenerate never overwrites this file. Each hook runs around the Service method of the same name.
-import { ConflictException } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
+import { ConflictException, NotFoundException } from "@nestjs/common";
+import { database } from "../prisma-client";
 import type { Hooks } from "../with-hooks";
 import type { BookingService } from "./booking-service.service";
 import { canChangeStatus, DEFAULT_DURATION_MINUTES, findConflict, type ExistingBooking } from "./booking-rules";
 
-let prisma: PrismaClient | undefined;
-
 /** Length of a service in minutes. Without a database or for an unknown id the default is used. */
 async function durationOf(serviceId: string): Promise<number> {
-  if (!process.env.DATABASE_URL) return DEFAULT_DURATION_MINUTES;
+  const db = database();
+  if (!db) return DEFAULT_DURATION_MINUTES;
   try {
-    prisma ??= new PrismaClient();
-    const service = await prisma.service.findUnique({ where: { id: serviceId } });
+    const service = await db.service.findUnique({ where: { id: serviceId } });
     return service?.durationMinutes ?? DEFAULT_DURATION_MINUTES;
   } catch {
     return DEFAULT_DURATION_MINUTES;
   }
 }
 
+/** Throws 404 when the service or the master of a booking does not exist (without a database there is nothing to ask). */
+async function ensureExist(serviceId: string, masterId: string) {
+  const db = database();
+  if (!db) return;
+  if (!(await db.service.findUnique({ where: { id: serviceId } }))) throw new NotFoundException("Услуга не найдена");
+  if (!(await db.master.findUnique({ where: { id: masterId } }))) throw new NotFoundException("Мастер не найден");
+}
+
 /** Throws 409 when the master is busy at that time. */
 async function ensureSlotFree(service: any, masterId: string, startsAt: Date, serviceId: string, ignoreId?: string) {
-  const page = await service.bookingRepository.findPage({ search: masterId, offset: 0 });
+  await ensureExist(serviceId, masterId);
+  // The list takes a text search, which does not reach the id columns, so the rows are filtered here.
+  const page = await service.bookingRepository.findPage({ offset: 0 });
   const sameMaster = (page.items as any[]).filter((row) => row.masterId === masterId);
   const existing: ExistingBooking[] = await Promise.all(
     sameMaster.map(async (row) => ({ ...row, durationMinutes: await durationOf(row.serviceId) })),

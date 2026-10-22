@@ -1,15 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsDateString, IsOptional, IsString } from "class-validator";
+import { IsDateString, IsOptional, IsString, IsUUID } from "class-validator";
 
 export class UpdateBookingRequestDto {
-  @ApiProperty({ type: String })
-  @IsString()
-  serviceId: string;
-
-  @ApiProperty({ type: String })
-  @IsString()
-  masterId: string;
-
   @ApiProperty({ type: String })
   @IsString()
   clientName: string;
@@ -36,4 +28,12 @@ export class UpdateBookingRequestDto {
   @IsOptional()
   @IsDateString()
   createdAt?: string;
+
+  @ApiProperty({ type: String, format: "uuid" })
+  @IsUUID()
+  serviceId: string;
+
+  @ApiProperty({ type: String, format: "uuid" })
+  @IsUUID()
+  masterId: string;
 }

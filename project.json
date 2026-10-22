@@ -1342,144 +1342,6 @@
             }
           },
           {
-            "id": "1a4444a4-766a-4d70-9c56-55f041245a6d",
-            "category": "Entity",
-            "type": "Field",
-            "properties": [
-              {
-                "name": "name",
-                "type": "String",
-                "value": "serviceId"
-              },
-              {
-                "name": "type",
-                "type": "Enum",
-                "value": "String"
-              },
-              {
-                "name": "required",
-                "type": "Boolean",
-                "value": true
-              },
-              {
-                "name": "unique",
-                "type": "Boolean",
-                "value": false
-              },
-              {
-                "name": "defaultValue",
-                "type": "String"
-              },
-              {
-                "name": "autoIncrement",
-                "type": "Boolean"
-              },
-              {
-                "name": "length",
-                "type": "Number"
-              },
-              {
-                "name": "precision",
-                "type": "Number"
-              },
-              {
-                "name": "scale",
-                "type": "Number"
-              },
-              {
-                "name": "dimensions",
-                "type": "Number"
-              },
-              {
-                "name": "enumValues",
-                "type": "Array"
-              },
-              {
-                "name": "arrayElementType",
-                "type": "Enum"
-              },
-              {
-                "name": "description",
-                "type": "String"
-              }
-            ],
-            "metadata": {
-              "version": "0.0.0",
-              "createdAt": "2026-10-21T15:09:46.241Z",
-              "updatedAt": "2026-10-21T15:09:46.241Z",
-              "tags": []
-            }
-          },
-          {
-            "id": "3583d97c-ed4e-415c-afc4-e4dcf89cf19c",
-            "category": "Entity",
-            "type": "Field",
-            "properties": [
-              {
-                "name": "name",
-                "type": "String",
-                "value": "masterId"
-              },
-              {
-                "name": "type",
-                "type": "Enum",
-                "value": "String"
-              },
-              {
-                "name": "required",
-                "type": "Boolean",
-                "value": true
-              },
-              {
-                "name": "unique",
-                "type": "Boolean",
-                "value": false
-              },
-              {
-                "name": "defaultValue",
-                "type": "String"
-              },
-              {
-                "name": "autoIncrement",
-                "type": "Boolean"
-              },
-              {
-                "name": "length",
-                "type": "Number"
-              },
-              {
-                "name": "precision",
-                "type": "Number"
-              },
-              {
-                "name": "scale",
-                "type": "Number"
-              },
-              {
-                "name": "dimensions",
-                "type": "Number"
-              },
-              {
-                "name": "enumValues",
-                "type": "Array"
-              },
-              {
-                "name": "arrayElementType",
-                "type": "Enum"
-              },
-              {
-                "name": "description",
-                "type": "String"
-              }
-            ],
-            "metadata": {
-              "version": "0.0.0",
-              "createdAt": "2026-10-21T15:09:46.241Z",
-              "updatedAt": "2026-10-21T15:09:46.241Z",
-              "tags": []
-            }
-          },
-          {
             "id": "7982bda0-a4e9-451c-a02f-26b086ea4fb2",
             "category": "Entity",
             "type": "Field",
@@ -1892,9 +1754,178 @@
               "updatedAt": "2026-10-21T15:09:46.242Z",
               "tags": []
             }
+          },
+          {
+            "id": "e6db688c-7188-42dd-a822-989aab3a3f31",
+            "category": "Relationship",
+            "type": "Relationship",
+            "properties": [
+              {
+                "name": "name",
+                "type": "String",
+                "value": "BookingService"
+              },
+              {
+                "name": "cardinality",
+                "type": "Enum",
+                "value": "Many To One"
+              },
+              {
+                "name": "cascadeDelete",
+                "type": "Boolean",
+                "value": false
+              },
+              {
+                "name": "cascadeUpdate",
+                "type": "Boolean",
+                "value": false
+              },
+              {
+                "name": "optional",
+                "type": "Boolean",
+                "value": false
+              },
+              {
+                "name": "sourceEntity",
+                "type": "Reference",
+                "value": "b29b6288-b25f-44a1-a023-176a102854d1"
+              },
+              {
+                "name": "targetEntity",
+                "type": "Reference",
+                "value": "86c1228d-ca85-43f2-8cdc-c10236c6deaa"
+              }
+            ],
+            "metadata": {
+              "version": "0.0.0",
+              "createdAt": "2026-10-22T14:14:26.749510Z",
+              "updatedAt": "2026-10-22T14:14:26.749510Z",
+              "tags": []
+            }
+          },
+          {
+            "id": "ad94eb05-5336-4b51-b5f4-6ccab6114838",
+            "category": "Relationship",
+            "type": "Relationship",
+            "properties": [
+              {
+                "name": "name",
+                "type": "String",
+                "value": "BookingMaster"
+              },
+              {
+                "name": "cardinality",
+                "type": "Enum",
+                "value": "Many To One"
+              },
+              {
+                "name": "cascadeDelete",
+                "type": "Boolean",
+                "value": false
+              },
+              {
+                "name": "cascadeUpdate",
+                "type": "Boolean",
+                "value": false
+              },
+              {
+                "name": "optional",
+                "type": "Boolean",
+                "value": false
+              },
+              {
+                "name": "sourceEntity",
+                "type": "Reference",
+                "value": "b29b6288-b25f-44a1-a023-176a102854d1"
+              },
+              {
+                "name": "targetEntity",
+                "type": "Reference",
+                "value": "814147e4-bb1a-40c0-86a4-6548209179ab"
+              }
+            ],
+            "metadata": {
+              "version": "0.0.0",
+              "createdAt": "2026-10-22T14:14:26.749510Z",
+              "updatedAt": "2026-10-22T14:14:26.749510Z",
+              "tags": []
+            }
           }
         ],
-        "connections": [],
+        "connections": [
+          {
+            "id": "ae75cb44-3087-45a9-98e5-997de80f47e1",
+            "type": "Dependency",
+            "from": {
+              "blockId": "e6db688c-7188-42dd-a822-989aab3a3f31",
+              "port": "n/a"
+            },
+            "to": {
+              "blockId": "b29b6288-b25f-44a1-a023-176a102854d1",
+              "port": "source"
+            },
+            "metadata": {
+              "version": "0.0.0",
+              "createdAt": "2026-10-22T14:14:26.749510Z",
+              "updatedAt": "2026-10-22T14:14:26.749510Z",
+              "tags": []
+            }
+          },
+          {
+            "id": "7a1bc497-7b83-491a-bae5-16c9e03b8387",
+            "type": "Dependency",
+            "from": {
+              "blockId": "e6db688c-7188-42dd-a822-989aab3a3f31",
+              "port": "n/a"
+            },
+            "to": {
+              "blockId": "86c1228d-ca85-43f2-8cdc-c10236c6deaa",
+              "port": "target"
+            },
+            "metadata": {
+              "version": "0.0.0",
+              "createdAt": "2026-10-22T14:14:26.749510Z",
+              "updatedAt": "2026-10-22T14:14:26.749510Z",
+              "tags": []
+            }
+          },
+          {
+            "id": "71d57f7b-95f6-49f5-a2d5-1c7b454e4655",
+            "type": "Dependency",
+            "from": {
+              "blockId": "ad94eb05-5336-4b51-b5f4-6ccab6114838",
+              "port": "n/a"
+            },
+            "to": {
+              "blockId": "b29b6288-b25f-44a1-a023-176a102854d1",
+              "port": "source"
+            },
+            "metadata": {
+              "version": "0.0.0",
+              "createdAt": "2026-10-22T14:14:26.749510Z",
+              "updatedAt": "2026-10-22T14:14:26.749510Z",
+              "tags": []
+            }
+          },
+          {
+            "id": "84bf238a-cf55-4750-bf06-4f370d731ef6",
+            "type": "Dependency",
+            "from": {
+              "blockId": "ad94eb05-5336-4b51-b5f4-6ccab6114838",
+              "port": "n/a"
+            },
+            "to": {
+              "blockId": "814147e4-bb1a-40c0-86a4-6548209179ab",
+              "port": "target"
+            },
+            "metadata": {
+              "version": "0.0.0",
+              "createdAt": "2026-10-22T14:14:26.749510Z",
+              "updatedAt": "2026-10-22T14:14:26.749510Z",
+              "tags": []
+            }
+          }
+        ],
         "variables": [],
         "layout": {
           "71cff0b0-9e7c-406d-a864-bd8158a6a921": {
@@ -2016,6 +2047,14 @@
           "f2827acc-ee4d-408a-92e9-032aaaae913e": {
             "x": 2000,
             "y": 1320
+          },
+          "e6db688c-7188-42dd-a822-989aab3a3f31": {
+            "x": 1400,
+            "y": 300
+          },
+          "ad94eb05-5336-4b51-b5f4-6ccab6114838": {
+            "x": 1400,
+            "y": 450
           }
         },
         "hierarchy": {
@@ -2049,8 +2088,6 @@
           ],
           "b29b6288-b25f-44a1-a023-176a102854d1": [
             "823ea07d-983a-4d2d-8a09-bd2774a495bb",
-            "1a4444a4-766a-4d70-9c56-55f041245a6d",
-            "3583d97c-ed4e-415c-afc4-e4dcf89cf19c",
             "7982bda0-a4e9-451c-a02f-26b086ea4fb2",
             "1d94394c-f259-4b60-b6a5-8d08e492c58f",
             "67d3ca95-024d-4ac8-8f3e-293ffd249fed",
@@ -2891,13 +2928,13 @@
               {
                 "name": "kind",
                 "type": "Enum",
-                "value": "Text",
+                "value": "Select",
                 "defaultValue": "Text"
               },
               {
                 "name": "label",
                 "type": "String",
-                "value": "Услуга (ID)"
+                "value": "Услуга"
               },
               {
                 "name": "name",
@@ -2914,15 +2951,18 @@
               },
               {
                 "name": "source",
-                "type": "Reference"
+                "type": "Reference",
+                "value": "9768aaf9-afe6-4227-8f9e-9f81871057ed"
               },
               {
                 "name": "valueKey",
-                "type": "String"
+                "type": "String",
+                "value": "id"
               },
               {
                 "name": "labelKey",
-                "type": "String"
+                "type": "String",
+                "value": "name"
               }
             ],
             "metadata": {
@@ -2940,13 +2980,13 @@
               {
                 "name": "kind",
                 "type": "Enum",
-                "value": "Text",
+                "value": "Select",
                 "defaultValue": "Text"
               },
               {
                 "name": "label",
                 "type": "String",
-                "value": "Мастер (ID)"
+                "value": "Мастер"
               },
               {
                 "name": "name",
@@ -2963,15 +3003,18 @@
               },
               {
                 "name": "source",
-                "type": "Reference"
+                "type": "Reference",
+                "value": "9c1607b6-c17e-463c-a7ef-402b6243d90d"
               },
               {
                 "name": "valueKey",
-                "type": "String"
+                "type": "String",
+                "value": "id"
               },
               {
                 "name": "labelKey",
-                "type": "String"
+                "type": "String",
+                "value": "name"
               }
             ],
             "metadata": {
@@ -3274,6 +3317,84 @@
               "updatedAt": "2026-10-21T15:09:46.245Z",
               "tags": []
             }
+          },
+          {
+            "id": "9768aaf9-afe6-4227-8f9e-9f81871057ed",
+            "category": "Data",
+            "type": "Read",
+            "properties": [
+              {
+                "name": "name",
+                "type": "String",
+                "value": "servicesForBooking"
+              },
+              {
+                "name": "endpoint",
+                "type": "Reference"
+              },
+              {
+                "name": "url",
+                "type": "String",
+                "value": "/services"
+              },
+              {
+                "name": "shape",
+                "type": "Enum",
+                "value": "list",
+                "defaultValue": "list"
+              },
+              {
+                "name": "offline",
+                "type": "Boolean",
+                "value": false,
+                "defaultValue": false
+              }
+            ],
+            "metadata": {
+              "version": "0.0.0",
+              "createdAt": "2026-10-22T14:14:26.749510Z",
+              "updatedAt": "2026-10-22T14:14:26.749510Z",
+              "tags": []
+            }
+          },
+          {
+            "id": "9c1607b6-c17e-463c-a7ef-402b6243d90d",
+            "category": "Data",
+            "type": "Read",
+            "properties": [
+              {
+                "name": "name",
+                "type": "String",
+                "value": "mastersForBooking"
+              },
+              {
+                "name": "endpoint",
+                "type": "Reference"
+              },
+              {
+                "name": "url",
+                "type": "String",
+                "value": "/masters"
+              },
+              {
+                "name": "shape",
+                "type": "Enum",
+                "value": "list",
+                "defaultValue": "list"
+              },
+              {
+                "name": "offline",
+                "type": "Boolean",
+                "value": false,
+                "defaultValue": false
+              }
+            ],
+            "metadata": {
+              "version": "0.0.0",
+              "createdAt": "2026-10-22T14:14:26.749510Z",
+              "updatedAt": "2026-10-22T14:14:26.749510Z",
+              "tags": []
+            }
           }
         ],
         "connections": [
@@ -3310,6 +3431,42 @@
               "version": "0.0.0",
               "createdAt": "2026-10-21T15:09:46.239Z",
               "updatedAt": "2026-10-21T15:09:46.239Z",
+              "tags": []
+            }
+          },
+          {
+            "id": "8fe7b227-6c1c-4e7f-b81c-8287082c87f0",
+            "type": "Dependency",
+            "from": {
+              "blockId": "e5b87c70-68f3-4cd0-baed-ba9a38f332fb",
+              "port": "source"
+            },
+            "to": {
+              "blockId": "9768aaf9-afe6-4227-8f9e-9f81871057ed",
+              "port": "data"
+            },
+            "metadata": {
+              "version": "0.0.0",
+              "createdAt": "2026-10-22T14:14:26.749510Z",
+              "updatedAt": "2026-10-22T14:14:26.749510Z",
+              "tags": []
+            }
+          },
+          {
+            "id": "b7a857b5-8453-4f4e-b106-2a9c7b2db461",
+            "type": "Dependency",
+            "from": {
+              "blockId": "ef34eaa9-a7a9-4110-a201-b034a2689fa6",
+              "port": "source"
+            },
+            "to": {
+              "blockId": "9c1607b6-c17e-463c-a7ef-402b6243d90d",
+              "port": "data"
+            },
+            "metadata": {
+              "version": "0.0.0",
+              "createdAt": "2026-10-22T14:14:26.749510Z",
+              "updatedAt": "2026-10-22T14:14:26.749510Z",
               "tags": []
             }
           }
@@ -3383,6 +3540,14 @@
           "a5d3af10-fa48-4e1c-9c93-3f482b521f9f": {
             "x": 900,
             "y": 1020
+          },
+          "9768aaf9-afe6-4227-8f9e-9f81871057ed": {
+            "x": 100,
+            "y": 100
+          },
+          "9c1607b6-c17e-463c-a7ef-402b6243d90d": {
+            "x": 100,
+            "y": 100
           }
         },
         "hierarchy": {
@@ -3395,6 +3560,8 @@
             "2a0598d9-5ea2-4ab9-86e2-77c8e5d0e530"
           ],
           "fc1696c5-efd5-42ea-9268-a171202420c2": [
+            "9768aaf9-afe6-4227-8f9e-9f81871057ed",
+            "9c1607b6-c17e-463c-a7ef-402b6243d90d",
             "4d1d31eb-604d-4387-af02-4b1c3c3f88be",
             "e5b87c70-68f3-4cd0-baed-ba9a38f332fb",
             "ef34eaa9-a7a9-4110-a201-b034a2689fa6",
