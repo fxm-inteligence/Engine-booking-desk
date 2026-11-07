@@ -29,6 +29,11 @@ export class UpdateBookingRequestDto {
   @IsDateString()
   createdAt?: string;
 
+  @ApiPropertyOptional({ type: String, format: "date-time" })
+  @IsOptional()
+  @IsDateString()
+  remindedAt?: string;
+
   @ApiProperty({ type: String, format: "uuid" })
   @IsUUID()
   serviceId: string;

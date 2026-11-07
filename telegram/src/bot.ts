@@ -1,3 +1,4 @@
+import { refusalFor } from "./api/client";
 import { listServices } from "./api/endpoints";
 import { formatResult } from "./api/format";
 import { Telegraf } from "telegraf";
@@ -18,7 +19,7 @@ bot.command("services", async (ctx) => {
     result = await listServices();
   } catch (error) {
     console.error("The API call failed:", error);
-    await ctx.reply("The service is temporarily unavailable");
+    await ctx.reply(refusalFor(error, "The service is temporarily unavailable"));
     return;
   }
   await ctx.reply("Услуги салона:\n" + formatResult(result, "name"));

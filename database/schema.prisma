@@ -44,6 +44,7 @@ model Booking {
   status String? @default("new")
   notes String? @db.Text
   createdAt DateTime? @default(now())
+  remindedAt DateTime?
   serviceId String @db.Uuid
   service Service @relation(fields: [serviceId], references: [id])
   masterId String @db.Uuid
@@ -57,10 +58,46 @@ model Account {
   role String @default("user")
 }
 
+model Notice {
+  id String @id @default(uuid()) @db.Uuid
+  kind String
+  masterId String @db.Uuid
+  clientName String
+  clientPhone String
+  startsAt DateTime
+  seenAt DateTime?
+  createdAt DateTime? @default(now())
+}
+
 model AuthToken {
   id String @id @default(uuid()) @db.Uuid
   userId String
   kind String
   tokenHash String @unique
   expiresAt Float
+}
+
+model BookingStatusLog {
+  id String @id @default(uuid()) @db.Uuid
+  recordId String
+  fromStatus String?
+  toStatus String
+  changedAt Float
+}
+
+model BookingAuditLog {
+  id String @id @default(uuid()) @db.Uuid
+  recordId String
+  action String
+  actor String?
+  changes String? @db.Text
+  changedAt Float
+}
+
+model BookingIdempotencyKey {
+  id String @id @default(uuid()) @db.Uuid
+  requestKey String @unique
+  recordId String
+  createdAt Float
+  requestHash String?
 }

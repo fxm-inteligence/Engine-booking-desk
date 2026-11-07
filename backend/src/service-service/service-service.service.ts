@@ -1,9 +1,11 @@
 import { ListQuery } from "../list-query";
 import { withHooks } from "../with-hooks";
 import { CreateServiceRequestDto } from "./dto/create-service-request.dto";
+import { PatchServiceRequestDto } from "./dto/patch-service-request.dto";
 import { UpdateServiceRequestDto } from "./dto/update-service-request.dto";
 import { ServiceRepository } from "./service-repository.repository";
 import { hooks } from "./service-service.hooks";
+import { lockSlots, logicHooks } from "./service-service.logic";
 import { Injectable, NotFoundException } from "@nestjs/common";
 
 @Injectable()
@@ -30,6 +32,12 @@ export class ServiceService {
     return this.serviceRepository.update(id, { ...dto, createdAt: dto.createdAt === undefined ? undefined : new Date(dto.createdAt) });
   }
 
+  async patchService(id: string, dto: PatchServiceRequestDto) {
+    const record = await this.serviceRepository.findById(id);
+    if (!record) throw new NotFoundException();
+    return this.serviceRepository.update(id, { ...dto, createdAt: dto.createdAt === undefined ? undefined : new Date(dto.createdAt) });
+  }
+
   async deleteService(id: string) {
     const record = await this.serviceRepository.findById(id);
     if (!record) throw new NotFoundException();
@@ -38,3 +46,5 @@ export class ServiceService {
 }
 
 withHooks(ServiceService.prototype, hooks);
+withHooks(ServiceService.prototype, logicHooks);
+lockSlots(ServiceService.prototype);

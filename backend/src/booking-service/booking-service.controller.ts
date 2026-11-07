@@ -1,9 +1,10 @@
 import { TOTAL_COUNT_HEADER, parseListQuery } from "../list-query";
 import { BookingService } from "./booking-service.service";
 import { CreateBookingRequestDto } from "./dto/create-booking-request.dto";
+import { PatchBookingRequestDto } from "./dto/patch-booking-request.dto";
 import { UpdateBookingRequestDto } from "./dto/update-booking-request.dto";
 import { StaffGuard } from "./staff.guard";
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { Response } from "express";
 
@@ -18,6 +19,12 @@ export class BookingServiceController {
     const page = await this.bookingService.listBookings(parseListQuery(query));
     response.setHeader(TOTAL_COUNT_HEADER, page.total);
     return page.items;
+  }
+
+  @UseGuards(StaffGuard)
+  @Get("/bookings/busy")
+  getBookingBusy() {
+    return this.bookingService.getBookingBusy();
   }
 
   @UseGuards(StaffGuard)
@@ -38,8 +45,20 @@ export class BookingServiceController {
   }
 
   @UseGuards(StaffGuard)
+  @Patch("/bookings/:id")
+  patchBooking(@Param("id") id: string, @Body() dto: PatchBookingRequestDto) {
+    return this.bookingService.patchBooking(id, dto);
+  }
+
+  @UseGuards(StaffGuard)
   @Delete("/bookings/:id")
   deleteBooking(@Param("id") id: string) {
     return this.bookingService.deleteBooking(id);
+  }
+
+  @UseGuards(StaffGuard)
+  @Get("/bookings/:id/transitions")
+  getBookingTransitions(@Param("id") id: string) {
+    return this.bookingService.getBookingTransitions(id);
   }
 }

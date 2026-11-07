@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
-import type { ListQuery, Page } from "../list-query";
+import { ambient } from "../transaction-scope";
+import { readFilters, type FilterKind, type ListQuery, type Page } from "../list-query";
 
 export interface ClientRecord {
   id: string;
@@ -19,6 +20,26 @@ function searchWhere(search: string | undefined) {
       { telegramId: { contains: search, mode: "insensitive" as const } },
     ],
   };
+}
+
+const FILTER_COLUMNS = new Map<string, FilterKind>([
+  ["id", "uuid"],
+  ["name", "text"],
+  ["phone", "text"],
+  ["telegramId", "text"],
+  ["createdAt", "datetime"],
+]);
+
+function listWhere(query: ListQuery) {
+  const conditions: Record<string, unknown>[] = readFilters(query.filters, FILTER_COLUMNS).map(
+    ({ field, operator, value }) =>
+      value === undefined
+        ? { id: { in: [] } }
+        : { [field]: operator === "equals" ? value : { [operator]: value } },
+  );
+  const search = searchWhere(query.search);
+  if (search) conditions.push(search);
+  return { AND: conditions };
 }
 
 function orderBy(sort: ListQuery["sort"]) {
@@ -41,12 +62,12 @@ function orderBy(sort: ListQuery["sort"]) {
 
 @Injectable()
 export class ClientRepository {
-  private readonly prisma = new PrismaClient();
+  private readonly prisma = ambient(new PrismaClient());
 
   findPage(query: ListQuery): Promise<Page<ClientRecord>> {
     return Promise.all([
-      this.prisma.client.findMany({ where: searchWhere(query.search), orderBy: orderBy(query.sort), skip: query.offset, take: query.limit }),
-      this.prisma.client.count({ where: searchWhere(query.search) }),
+      this.prisma.client.findMany({ where: listWhere(query), orderBy: orderBy(query.sort), skip: query.offset, take: query.limit }),
+      this.prisma.client.count({ where: listWhere(query) }),
     ]).then(([rows, total]) => ({ items: rows, total }));
   }
 

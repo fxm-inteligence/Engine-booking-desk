@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
-import type { ListQuery, Page } from "../list-query";
+import { ambient } from "../transaction-scope";
+import { readFilters, type FilterKind, type ListQuery, type Page } from "../list-query";
 
 export interface BookingRecord {
   id: string;
@@ -10,6 +11,7 @@ export interface BookingRecord {
   status?: string;
   notes?: string;
   createdAt?: Date;
+  remindedAt?: Date;
   serviceId: string;
   masterId: string;
 }
@@ -24,6 +26,30 @@ function searchWhere(search: string | undefined) {
       { notes: { contains: search, mode: "insensitive" as const } },
     ],
   };
+}
+
+const FILTER_COLUMNS = new Map<string, FilterKind>([
+  ["id", "uuid"],
+  ["clientName", "text"],
+  ["clientPhone", "text"],
+  ["startsAt", "datetime"],
+  ["status", "text"],
+  ["createdAt", "datetime"],
+  ["remindedAt", "datetime"],
+  ["serviceId", "uuid"],
+  ["masterId", "uuid"],
+]);
+
+function listWhere(query: ListQuery) {
+  const conditions: Record<string, unknown>[] = readFilters(query.filters, FILTER_COLUMNS).map(
+    ({ field, operator, value }) =>
+      value === undefined
+        ? { id: { in: [] } }
+        : { [field]: operator === "equals" ? value : { [operator]: value } },
+  );
+  const search = searchWhere(query.search);
+  if (search) conditions.push(search);
+  return { AND: conditions };
 }
 
 function orderBy(sort: ListQuery["sort"]) {
@@ -43,6 +69,8 @@ function orderBy(sort: ListQuery["sort"]) {
       return [{ notes: direction }, { id: "asc" as const }];
     case "createdAt":
       return [{ createdAt: direction }, { id: "asc" as const }];
+    case "remindedAt":
+      return [{ remindedAt: direction }, { id: "asc" as const }];
     case "serviceId":
       return [{ serviceId: direction }, { id: "asc" as const }];
     case "masterId":
@@ -54,12 +82,12 @@ function orderBy(sort: ListQuery["sort"]) {
 
 @Injectable()
 export class BookingRepository {
-  private readonly prisma = new PrismaClient();
+  private readonly prisma = ambient(new PrismaClient());
 
   findPage(query: ListQuery): Promise<Page<BookingRecord>> {
     return Promise.all([
-      this.prisma.booking.findMany({ where: searchWhere(query.search), orderBy: orderBy(query.sort), skip: query.offset, take: query.limit }),
-      this.prisma.booking.count({ where: searchWhere(query.search) }),
+      this.prisma.booking.findMany({ where: listWhere(query), orderBy: orderBy(query.sort), skip: query.offset, take: query.limit }),
+      this.prisma.booking.count({ where: listWhere(query) }),
     ]).then(([rows, total]) => ({ items: rows, total }));
   }
 

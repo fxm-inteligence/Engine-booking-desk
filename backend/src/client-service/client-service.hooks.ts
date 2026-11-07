@@ -8,6 +8,7 @@ export const hooks: Hooks<ClientService> = {
     // getClient(...) { /* throw to refuse the call */ },
     // createClient(...) { /* throw to refuse the call */ },
     // updateClient(...) { /* throw to refuse the call */ },
+    // patchClient(...) { /* throw to refuse the call */ },
     // deleteClient(...) { /* throw to refuse the call */ },
   },
   after: {
@@ -15,6 +16,7 @@ export const hooks: Hooks<ClientService> = {
     // getClient(result, ...) { return result; },
     // createClient(result, ...) { return result; },
     // updateClient(result, ...) { return result; },
+    // patchClient(result, ...) { return result; },
     // deleteClient(result, ...) { return result; },
   },
 };

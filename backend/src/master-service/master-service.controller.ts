@@ -1,9 +1,10 @@
 import { TOTAL_COUNT_HEADER, parseListQuery } from "../list-query";
 import { CreateMasterRequestDto } from "./dto/create-master-request.dto";
+import { PatchMasterRequestDto } from "./dto/patch-master-request.dto";
 import { UpdateMasterRequestDto } from "./dto/update-master-request.dto";
 import { MasterService } from "./master-service.service";
 import { StaffGuard } from "./staff.guard";
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { Response } from "express";
 
@@ -34,6 +35,12 @@ export class MasterServiceController {
   @Put("/masters/:id")
   updateMaster(@Param("id") id: string, @Body() dto: UpdateMasterRequestDto) {
     return this.masterService.updateMaster(id, dto);
+  }
+
+  @UseGuards(StaffGuard)
+  @Patch("/masters/:id")
+  patchMaster(@Param("id") id: string, @Body() dto: PatchMasterRequestDto) {
+    return this.masterService.patchMaster(id, dto);
   }
 
   @UseGuards(StaffGuard)

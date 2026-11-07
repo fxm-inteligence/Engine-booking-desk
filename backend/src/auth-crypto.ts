@@ -142,6 +142,45 @@ export function authenticate(
 
 export type BusinessRule = [field: string, kind: string, argument: string];
 
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE = /^\+?[0-9]{7,15}$/;
+const URL_TEXT = /^https?:\/\/[^\s/$.?#][^\s]*$/;
+const MOMENT = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)(Z|[+-]\d{2}:\d{2})?)?$/;
+const CLOCK = /^(\d{2}):(\d{2})(?::(\d{2}))?$/;
+
+/** A value as the text a rule compares: a whole number without a fraction, a boolean as true or false. */
+function plain(value: unknown): string {
+  return String(value);
+}
+
+/** The moment (milliseconds) a text names: a date, or a date and time with an optional offset (UTC without one); null for anything else. */
+function moment(value: unknown): number | null {
+  if (typeof value !== "string") return null;
+  const parts = MOMENT.exec(value.trim());
+  if (!parts) return null;
+  const [year = 0, month = 0, day = 0] = (parts[1] ?? "").split("-").map(Number);
+  if (month < 1 || month > 12 || day < 1 || day > new Date(Date.UTC(year, month, 0)).getUTCDate()) {
+    return null;
+  }
+  const time = Date.parse(parts[1] + "T" + (parts[2] ?? "00:00") + (parts[3] ?? "Z"));
+  return Number.isNaN(time) ? null : time;
+}
+
+/** Which of two values comes first (-1, 0, 1): numbers by size, dates and times by moment, clock times by the clock; null when they cannot be compared. */
+function ordered(left: unknown, right: unknown): number | null {
+  if (typeof left === "number" && typeof right === "number") return Math.sign(left - right);
+  if (typeof left !== "string" || typeof right !== "string") return null;
+  const a = moment(left);
+  const b = moment(right);
+  if (a !== null && b !== null) return Math.sign(a - b);
+  const x = CLOCK.exec(left.trim());
+  const y = CLOCK.exec(right.trim());
+  if (!x || !y) return null;
+  const seconds = (parts: RegExpExecArray) =>
+    Number(parts[1]) * 3600 + Number(parts[2]) * 60 + Number(parts[3] ?? 0);
+  return Math.sign(seconds(x) - seconds(y));
+}
+
 /** The problems record has against rules; partial skips absent values (a PATCH). */
 export function checkRules(record: object, rules: BusinessRule[], partial: boolean): string[] {
   const values = record as Record<string, unknown>;
@@ -152,6 +191,16 @@ export function checkRules(record: object, rules: BusinessRule[], partial: boole
     if (kind === "required") {
       if (present ? typeof value === "string" && value.trim() === "" : !partial) {
         problems.push(field + " is required");
+      }
+      continue;
+    }
+    if (kind === "requiredIf") {
+      const at = argument.indexOf("=");
+      const other = values[argument.slice(0, at)];
+      const expected = argument.slice(at + 1);
+      const applies = other !== undefined && other !== null && plain(other) === expected;
+      if (applies && (present ? typeof value === "string" && value.trim() === "" : !partial)) {
+        problems.push(field + " is required when " + argument.slice(0, at) + " is " + expected);
       }
       continue;
     }
@@ -168,16 +217,103 @@ export function checkRules(record: object, rules: BusinessRule[], partial: boole
       problems.push(field + " must be at most " + argument + " characters long");
     } else if (kind === "pattern" && !new RegExp(argument).test(text)) {
       problems.push(field + " is invalid");
+    } else if (kind === "email" && !EMAIL.test(text)) {
+      problems.push(field + " must be a valid email");
+    } else if (kind === "phone" && !PHONE.test(text.replace(/[\s().-]/g, ""))) {
+      problems.push(field + " must be a valid phone number");
+    } else if (kind === "url" && !URL_TEXT.test(text)) {
+      problems.push(field + " must be a valid URL");
+    } else if (kind === "future" || kind === "past") {
+      const time = moment(value);
+      if (time === null) problems.push(field + " must be a valid date");
+      else if (kind === "future" ? time <= Date.now() : time >= Date.now()) {
+        problems.push(field + " must be in the " + kind);
+      }
+    } else if (kind === "after" || kind === "before") {
+      const other = values[argument];
+      const order = other === undefined || other === null ? null : ordered(value, other);
+      if (order !== null && (kind === "after" ? order <= 0 : order >= 0)) {
+        problems.push(field + " must be " + kind + " " + argument);
+      }
     }
   }
   return problems;
 }
 
-import { createHash } from "node:crypto";
+const SPACES = /^[ \t\r\n]+|[ \t\r\n]+$/g;
+const NUMBER_TEXT = /^-?[0-9]+(?:\.[0-9]+)?$/;
+
+/** The number a value stands for: a number, or text written as one; null for anything else. */
+function numeric(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  return typeof value === "string" && NUMBER_TEXT.test(value) ? Number(value) : null;
+}
+
+/** The text after one of the functions a computed rule names: trim, lower, upper or slug. */
+function textFunction(name: string, text: string): string {
+  if (name === "trim") return text.replace(SPACES, "");
+  if (name === "lower") return text.toLowerCase();
+  if (name === "upper") return text.toUpperCase();
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** The values the computed rules ("set" and "fill") give record's fields, each seeing the ones before it; partial is a PATCH. */
+export function computeFields(
+  record: object,
+  rules: BusinessRule[],
+  partial: boolean,
+): Record<string, unknown> {
+  const values = { ...(record as Record<string, unknown>) };
+  const changes: Record<string, unknown> = {};
+  for (const [field, kind, argument] of rules) {
+    const current = values[field];
+    const present = current !== undefined && current !== null;
+    if (kind === "fill" && (present ? typeof current !== "string" || current.trim() !== "" : partial)) {
+      continue;
+    }
+    const [form, ...parts] = argument.split(" ");
+    let result: unknown;
+    if (form === "now") {
+      result = new Date().toISOString();
+    } else if (form === "pipe") {
+      const source = values[parts[0] ?? ""];
+      if (typeof source !== "string") continue;
+      result = parts.slice(1).reduce((text, name) => textFunction(name, text), source);
+    } else if (form === "calc") {
+      const operand = (token: string | undefined) =>
+        NUMBER_TEXT.test(token ?? "") ? Number(token) : numeric(values[token ?? ""]);
+      const left = operand(parts[0]);
+      const right = operand(parts[2]);
+      if (left === null || right === null) continue;
+      let number = parts[1] === "+" ? left + right : parts[1] === "-" ? left - right : left * right;
+      if (parts[1] === "/") number = left / right;
+      if (parts.length === 5) {
+        let scale = 1;
+        for (let digit = 0; digit < Number(parts[4]); digit++) scale *= 10;
+        number = Math.floor(number * scale + 0.5) / scale;
+      }
+      if (!Number.isFinite(number)) continue;
+      result = number;
+    } else {
+      continue;
+    }
+    values[field] = result;
+    changes[field] = result;
+  }
+  return changes;
+}
+
+import { createHash, randomInt } from "node:crypto";
 
 export const REFRESH_LIFETIME_SECONDS = 2592000;
 export const RESET_LIFETIME_SECONDS = 3600;
 export const VERIFY_LIFETIME_SECONDS = 86400;
+export const SMS_LIFETIME_SECONDS = 300;
+export const TOTP_LIFETIME_SECONDS = 315360000;
+export const TOTP_USED_LIFETIME_SECONDS = 120;
 
 interface TokenRow {
   id: string;
@@ -239,12 +375,127 @@ export async function takeToken(
   return row.expiresAt > Date.now() / 1000 ? row : undefined;
 }
 
+/** The kind of the row that keeps a sign-in code: the purpose and a fingerprint of the user and the code. */
+export function smsKind(userId: string, code: string): string {
+  return `sms:${sha256(`${userId}:${code}`).slice(0, 16)}`;
+}
+
+/**
+ * Saves a new sign-in code of 6 digits for the user and returns it. Its row is found by the hash of the
+ * purpose and the user's id, so the user has one code at a time (the caller takes an earlier one first),
+ * and a wrong guess spends the code like a right one: another guess needs another SMS.
+ */
+export async function issueSmsCode(store: TokenStore, userId: string): Promise<string> {
+  const code = String(randomInt(0, 10 ** 6)).padStart(6, "0");
+  await store.create({
+    userId,
+    kind: smsKind(userId, code),
+    tokenHash: sha256(`sms:${userId}`),
+    expiresAt: Math.floor(Date.now() / 1000) + SMS_LIFETIME_SECONDS,
+  });
+  return code;
+}
+
+const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+/** A new secret for an authenticator app: 20 random bytes in base32, the way the app reads it. */
+export function newTotpSecret(): string {
+  let bits = "";
+  for (const byte of randomBytes(20)) bits += byte.toString(2).padStart(8, "0");
+  let secret = "";
+  for (let at = 0; at < bits.length; at += 5) secret += BASE32[parseInt(bits.slice(at, at + 5).padEnd(5, "0"), 2)];
+  return secret;
+}
+
+/** The bytes of a base32 secret; undefined when the text is not one or is too short to be safe. */
+function totpKey(secret: string): Buffer | undefined {
+  const text = secret.replace(/=+$/, "").toUpperCase();
+  if (text.length < 16 || [...text].some((character) => !BASE32.includes(character))) return undefined;
+  let bits = "";
+  for (const character of text) bits += BASE32.indexOf(character).toString(2).padStart(5, "0");
+  const bytes: number[] = [];
+  for (let at = 0; at + 8 <= bits.length; at += 8) bytes.push(parseInt(bits.slice(at, at + 8), 2));
+  return Buffer.from(bytes);
+}
+
+/** True when `secret` is one an authenticator app can be given. */
+export function isTotpSecret(secret: string): boolean {
+  return totpKey(secret) !== undefined;
+}
+
+/** The link an authenticator app reads (as a QR code) to add the account. */
+export function totpUri(secret: string, account: string, issuer: string): string {
+  return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&digits=6&period=30`;
+}
+
+function totpAt(key: Buffer, step: number): string {
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(step));
+  const mac = createHmac("sha1", key).update(counter).digest();
+  const offset = mac[mac.length - 1]! & 0x0f;
+  const value =
+    ((mac[offset]! & 0x7f) << 24) | (mac[offset + 1]! << 16) | (mac[offset + 2]! << 8) | mac[offset + 3]!;
+  return String(value % 10 ** 6).padStart(6, "0");
+}
+
+/** The 30 second step `code` was made for, counting the one before and the one after the present; undefined when it fits none. */
+export function totpStepOf(secret: string, code: string, nowSeconds = Date.now() / 1000): number | undefined {
+  const key = totpKey(secret);
+  if (!key || !/^[0-9]{6}$/.test(code)) return undefined;
+  const present = Math.floor(nowSeconds / 30);
+  let found: number | undefined;
+  for (const step of [present - 1, present, present + 1]) {
+    if (timingSafeEqual(Buffer.from(totpAt(key, step)), Buffer.from(code))) found = step;
+  }
+  return found;
+}
+
+/** The hash a User's secret row is found by: the purpose and the User's id, so there is one secret each. */
+export function totpSecretHash(userId: string): string {
+  return sha256(`totp:${userId}`);
+}
+
+/** The secret a row of kind `totp:…` keeps. */
+export function totpSecretOf(row: { kind: string }): string {
+  return row.kind.slice(5);
+}
+
+/** Saves the secret of a User; its row is what turns the second factor on. */
+export async function saveTotpSecret(store: TokenStore, userId: string, secret: string): Promise<void> {
+  await store.create({
+    userId,
+    kind: `totp:${secret}`,
+    tokenHash: totpSecretHash(userId),
+    expiresAt: Math.floor(Date.now() / 1000) + TOTP_LIFETIME_SECONDS,
+  });
+}
+
+/** Accepts a code of the User's authenticator app once: false when it fits no step or its step has been used already. */
+export async function useTotpCode(store: TokenStore, userId: string, secret: string, code: string): Promise<boolean> {
+  const step = totpStepOf(secret, code);
+  if (step === undefined) return false;
+  const tokenHash = sha256(`totpuse:${userId}:${step}`);
+  if (await store.findByField("tokenHash", tokenHash)) return false;
+  await store.create({
+    userId,
+    kind: "totpuse",
+    tokenHash,
+    expiresAt: Math.floor(Date.now() / 1000) + TOTP_USED_LIFETIME_SECONDS,
+  });
+  return true;
+}
+
+/** The text of the SMS that carries a sign-in code. */
+export function smsText(code: string): string {
+  return `Your sign-in code: ${code}`;
+}
+
 const APP_URL = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/+$/, "");
 
 /** The mail that carries a confirmation or reset token to the user, as a link to the app. */
 export function authMail(purpose: "verify" | "reset", token: string): { subject: string; html: string } {
   const link = `${APP_URL}/${purpose === "verify" ? "verify-email" : "reset-password"}?token=${encodeURIComponent(token)}`;
   return purpose === "verify"
-    ? { subject: "Confirm your email", html: `<p>Confirm your email address: <a href="${link}">${link}</a></p>` }
-    : { subject: "Reset your password", html: `<p>Reset your password: <a href="${link}">${link}</a></p>` };
+    ? { subject: "Confirm your email", html: "<p>Confirm your email address: <a href=\"" + link + "\">" + link + "</a></p>" }
+    : { subject: "Reset your password", html: "<p>Reset your password: <a href=\"" + link + "\">" + link + "</a></p>" };
 }

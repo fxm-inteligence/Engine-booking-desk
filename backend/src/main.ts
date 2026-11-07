@@ -9,6 +9,7 @@ import { AllExceptionsFilter } from "./all-exceptions.filter";
 import { AppModule } from "./app.module";
 import { authenticate, clearedSessionCookie } from "./auth-crypto";
 import { SanitizePipe } from "./sanitize.pipe";
+import { runWithRequest } from "./request-context";
 
 // Nest's `ws` adapter routes an incoming message by its `event` field; the
 // protocol every other Adapter and the generated frontend speak is
@@ -36,6 +37,7 @@ async function bootstrap() {
   // protocol every other Adapter's own WebSocket transport already speaks.
   app.useWebSocketAdapter(new RouteWsAdapter(app));
   app.use(helmet());
+  app.use((req: any, _res: unknown, next: () => void) => runWithRequest(req.headers, req.method, next));
   app.enableCors({ origin: process.env.CORS_ORIGIN?.split(",") ?? false, credentials: true, exposedHeaders: ["X-Total-Count"] });
   app.useGlobalPipes(new SanitizePipe(), new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new AllExceptionsFilter(app.get(HttpAdapterHost).httpAdapter));

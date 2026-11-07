@@ -3,6 +3,7 @@ import { withHooks } from "../with-hooks";
 import { ClientRepository } from "./client-repository.repository";
 import { hooks } from "./client-service.hooks";
 import { CreateClientRequestDto } from "./dto/create-client-request.dto";
+import { PatchClientRequestDto } from "./dto/patch-client-request.dto";
 import { UpdateClientRequestDto } from "./dto/update-client-request.dto";
 import { Injectable, NotFoundException } from "@nestjs/common";
 
@@ -25,6 +26,12 @@ export class ClientService {
   }
 
   async updateClient(id: string, dto: UpdateClientRequestDto) {
+    const record = await this.clientRepository.findById(id);
+    if (!record) throw new NotFoundException();
+    return this.clientRepository.update(id, { ...dto, createdAt: dto.createdAt === undefined ? undefined : new Date(dto.createdAt) });
+  }
+
+  async patchClient(id: string, dto: PatchClientRequestDto) {
     const record = await this.clientRepository.findById(id);
     if (!record) throw new NotFoundException();
     return this.clientRepository.update(id, { ...dto, createdAt: dto.createdAt === undefined ? undefined : new Date(dto.createdAt) });

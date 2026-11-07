@@ -1,9 +1,10 @@
 import { TOTAL_COUNT_HEADER, parseListQuery } from "../list-query";
 import { CreateServiceRequestDto } from "./dto/create-service-request.dto";
+import { PatchServiceRequestDto } from "./dto/patch-service-request.dto";
 import { UpdateServiceRequestDto } from "./dto/update-service-request.dto";
 import { ServiceService } from "./service-service.service";
 import { StaffGuard } from "./staff.guard";
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { Response } from "express";
 
@@ -34,6 +35,12 @@ export class ServiceServiceController {
   @Put("/services/:id")
   updateService(@Param("id") id: string, @Body() dto: UpdateServiceRequestDto) {
     return this.serviceService.updateService(id, dto);
+  }
+
+  @UseGuards(StaffGuard)
+  @Patch("/services/:id")
+  patchService(@Param("id") id: string, @Body() dto: PatchServiceRequestDto) {
+    return this.serviceService.patchService(id, dto);
   }
 
   @UseGuards(StaffGuard)

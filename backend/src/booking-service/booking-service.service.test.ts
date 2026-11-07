@@ -31,12 +31,14 @@ function setup() {
       return row;
     },
   };
-  const service = new BookingService(repository as unknown as BookingRepository);
+  // The history, the audit trail and the idempotency keys are written to tables of their own: here they go nowhere.
+  const log = { create: async (row: Row) => row, findById: async () => null, findByField: async () => null, findPage: async () => ({ items: [], total: 0 }), remove: async () => null };
+  const service = new BookingService(repository as unknown as BookingRepository, log as never, log as never, log as never);
   return { service: service as any, rows };
 }
 
 function sample(): Row {
-  return { clientName: "sample", clientPhone: "sample", startsAt: "2024-01-01T00:00:00.000Z", status: "sample", notes: "sample", createdAt: "2024-01-01T00:00:00.000Z", serviceId: "00000000-0000-4000-8000-000000000001", masterId: "00000000-0000-4000-8000-000000000001" };
+  return { clientName: "sample", clientPhone: "sample", startsAt: "2030-07-01T09:00:00.000Z", status: "sample", notes: "sample", createdAt: "2030-07-01T09:00:00.000Z", serviceId: "00000000-0000-4000-8000-000000000001", masterId: "00000000-0000-4000-8000-000000000001" };
 }
 
 test("createBooking stores the record and answers with its id", async () => {

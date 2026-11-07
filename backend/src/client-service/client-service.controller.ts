@@ -1,9 +1,10 @@
 import { TOTAL_COUNT_HEADER, parseListQuery } from "../list-query";
 import { ClientService } from "./client-service.service";
 import { CreateClientRequestDto } from "./dto/create-client-request.dto";
+import { PatchClientRequestDto } from "./dto/patch-client-request.dto";
 import { UpdateClientRequestDto } from "./dto/update-client-request.dto";
 import { StaffGuard } from "./staff.guard";
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { Response } from "express";
 
@@ -36,6 +37,12 @@ export class ClientServiceController {
   @Put("/clients/:id")
   updateClient(@Param("id") id: string, @Body() dto: UpdateClientRequestDto) {
     return this.clientService.updateClient(id, dto);
+  }
+
+  @UseGuards(StaffGuard)
+  @Patch("/clients/:id")
+  patchClient(@Param("id") id: string, @Body() dto: PatchClientRequestDto) {
+    return this.clientService.patchClient(id, dto);
   }
 
   @UseGuards(StaffGuard)

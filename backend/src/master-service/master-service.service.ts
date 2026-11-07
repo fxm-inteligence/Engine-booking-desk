@@ -1,9 +1,11 @@
 import { ListQuery } from "../list-query";
 import { withHooks } from "../with-hooks";
 import { CreateMasterRequestDto } from "./dto/create-master-request.dto";
+import { PatchMasterRequestDto } from "./dto/patch-master-request.dto";
 import { UpdateMasterRequestDto } from "./dto/update-master-request.dto";
 import { MasterRepository } from "./master-repository.repository";
 import { hooks } from "./master-service.hooks";
+import { lockSlots, logicHooks } from "./master-service.logic";
 import { Injectable, NotFoundException } from "@nestjs/common";
 
 @Injectable()
@@ -30,6 +32,12 @@ export class MasterService {
     return this.masterRepository.update(id, { ...dto, createdAt: dto.createdAt === undefined ? undefined : new Date(dto.createdAt) });
   }
 
+  async patchMaster(id: string, dto: PatchMasterRequestDto) {
+    const record = await this.masterRepository.findById(id);
+    if (!record) throw new NotFoundException();
+    return this.masterRepository.update(id, { ...dto, createdAt: dto.createdAt === undefined ? undefined : new Date(dto.createdAt) });
+  }
+
   async deleteMaster(id: string) {
     const record = await this.masterRepository.findById(id);
     if (!record) throw new NotFoundException();
@@ -38,3 +46,5 @@ export class MasterService {
 }
 
 withHooks(MasterService.prototype, hooks);
+withHooks(MasterService.prototype, logicHooks);
+lockSlots(MasterService.prototype);
