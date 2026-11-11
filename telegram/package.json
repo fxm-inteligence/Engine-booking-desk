@@ -5,7 +5,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/main.js",
-    "start:dev": "ts-node src/main.ts"
+    "start:dev": "ts-node src/main.ts",
+    "test": "ts-node --transpile-only src/bot.test.ts"
   },
   "dependencies": {
     "telegraf": "^4.16.3"
