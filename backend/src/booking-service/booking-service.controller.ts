@@ -21,10 +21,16 @@ export class BookingServiceController {
     return page.items;
   }
 
-  @UseGuards(StaffGuard)
   @Get("/bookings/busy")
   getBookingBusy() {
     return this.bookingService.getBookingBusy();
+  }
+
+  @Get("/bookings/free")
+  async getBookingFree(@Query() query: Record<string, unknown>, @Res({ passthrough: true }) response: Response) {
+    const page = await this.bookingService.getBookingFree(parseListQuery(query));
+    response.setHeader(TOTAL_COUNT_HEADER, page.total);
+    return page.items;
   }
 
   @UseGuards(StaffGuard)

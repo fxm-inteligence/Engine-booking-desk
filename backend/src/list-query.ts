@@ -88,6 +88,22 @@ const count = (value: unknown): number | undefined => {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined;
 };
 
+/** A table of ready-made filters: the name a request asks for in `?query=`, and the parameters it stands for. */
+export type NamedQueries = Record<string, Record<string, string>>;
+
+/** The request with the ready-made filter that `?query=name` picks folded in: its conditions replace the request's own value of the same column, and its `sort` and `limit` are only defaults. A name that is not in the table leaves the request as it is. */
+export function withNamedQuery(query: Query | undefined, queries: NamedQueries): Query | undefined {
+  const name = first(query?.query);
+  if (typeof name !== "string" || !Object.prototype.hasOwnProperty.call(queries, name)) return query;
+  const merged: Query = { ...query };
+  delete merged.query;
+  for (const [key, value] of Object.entries(queries[name] ?? {})) {
+    const given = first(merged[key]);
+    if (!RESERVED.has(key) || given === undefined || given === "") merged[key] = value;
+  }
+  return merged;
+}
+
 /** Reads the `q`, `sort`, `offset` and `limit` query parameters and keeps every other one that holds text as a filter; one that is missing or invalid is left out. */
 export function parseListQuery(query: Query | undefined): ListQuery {
   const search = first(query?.q);

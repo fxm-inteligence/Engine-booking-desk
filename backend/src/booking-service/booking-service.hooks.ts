@@ -6,6 +6,7 @@ export const hooks: Hooks<BookingService> = {
   before: {
     // listBookings(...) { /* throw to refuse the call */ },
     // getBookingBusy(...) { /* throw to refuse the call */ },
+    // getBookingFree(...) { /* throw to refuse the call */ },
     // getBooking(...) { /* throw to refuse the call */ },
     // createBooking(...) { /* throw to refuse the call */ },
     // updateBooking(...) { /* throw to refuse the call */ },
@@ -16,6 +17,7 @@ export const hooks: Hooks<BookingService> = {
   after: {
     // listBookings(result, ...) { return result; },
     // getBookingBusy(result, ...) { return result; },
+    // getBookingFree(result, ...) { return result; },
     // getBooking(result, ...) { return result; },
     // createBooking(result, ...) { return result; },
     // updateBooking(result, ...) { return result; },

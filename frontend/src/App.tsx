@@ -8,6 +8,7 @@ import BookPage from "./pages/BookPage";
 import BookingsPage from "./pages/BookingsPage";
 import LoginPage from "./pages/LoginPage";
 import NoticesPage from "./pages/NoticesPage";
+import BookingsIdPage from "./pages/BookingsIdPage";
 
 /** Writes a Page's title and meta tags into the document head when its route opens. */
 function SeoOnOpen({ apply }: { apply: () => void }) {
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/bookings" element={<><SeoOnOpen apply={() => applyPageSeo({ title: "Записи" })} /><BookingsPage /></>} />
         <Route path="/login" element={<><SeoOnOpen apply={() => applyPageSeo({ title: "Вход" })} /><LoginPage /></>} />
         <Route path="/notices" element={<><SeoOnOpen apply={() => applyPageSeo({ title: "Уведомления" })} /><NoticesPage /></>} />
+        <Route path="/bookings/:id" element={<><SeoOnOpen apply={() => applyPageSeo({ title: "Запись", noIndex: true })} /><BookingsIdPage /></>} />
       </Routes>
     </BrowserRouter>
   );

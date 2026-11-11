@@ -31,9 +31,9 @@ function setup() {
       return row;
     },
   };
-  // The history, the audit trail and the idempotency keys are written to tables of their own: here they go nowhere.
+  // The history, the audit trail, the idempotency keys and the Telegram bot are written to tables of their own: here they go nowhere.
   const log = { create: async (row: Row) => row, findById: async () => null, findByField: async () => null, findPage: async () => ({ items: [], total: 0 }), remove: async () => null };
-  const service = new BookingService(repository as unknown as BookingRepository, log as never, log as never, log as never);
+  const service = new BookingService(repository as unknown as BookingRepository, log as never, log as never, log as never, log as never);
   return { service: service as any, rows };
 }
 

@@ -9,6 +9,8 @@ export interface MasterRecord {
   specialty?: string;
   phone?: string;
   createdAt?: Date;
+  workHours?: string;
+  daysOff?: string;
 }
 
 function searchWhere(search: string | undefined) {
@@ -18,6 +20,8 @@ function searchWhere(search: string | undefined) {
       { name: { contains: search, mode: "insensitive" as const } },
       { specialty: { contains: search, mode: "insensitive" as const } },
       { phone: { contains: search, mode: "insensitive" as const } },
+      { workHours: { contains: search, mode: "insensitive" as const } },
+      { daysOff: { contains: search, mode: "insensitive" as const } },
     ],
   };
 }
@@ -28,6 +32,8 @@ const FILTER_COLUMNS = new Map<string, FilterKind>([
   ["specialty", "text"],
   ["phone", "text"],
   ["createdAt", "datetime"],
+  ["workHours", "text"],
+  ["daysOff", "text"],
 ]);
 
 function listWhere(query: ListQuery) {
@@ -55,6 +61,10 @@ function orderBy(sort: ListQuery["sort"]) {
       return [{ phone: direction }, { id: "asc" as const }];
     case "createdAt":
       return [{ createdAt: direction }, { id: "asc" as const }];
+    case "workHours":
+      return [{ workHours: direction }, { id: "asc" as const }];
+    case "daysOff":
+      return [{ daysOff: direction }, { id: "asc" as const }];
     default:
       return [{ id: "asc" as const }];
   }

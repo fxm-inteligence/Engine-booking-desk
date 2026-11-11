@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { ConflictException } from "@nestjs/common";
 import { runWithKey } from "../request-context";
 import { withHooks } from "../with-hooks";
-import { flowBookingStepsAllows, flowBookingStepsOverdue, keepAudit, keepHistory, keepIdempotency, lockSlots, logicHooks, reactionBookingReminderNoticeFires, reactionBookingReminderNoticeRun, reactionBookingReminderNoticeStore, reactionNewBookingNoticeFires, reactionNewBookingNoticeRun, reactionNewBookingNoticeStore, slotInHours, slotsCrowded, sweepTimers } from "./booking-service.logic";
+import { flowBookingStepsAllows, flowBookingStepsOverdue, holidaysOf, keepAudit, keepHistory, keepIdempotency, lockSlots, logicHooks, reactionBookingReminderNoticeFires, reactionBookingReminderNoticeRun, reactionBookingReminderNoticeStore, reactionNewBookingNoticeFires, reactionNewBookingNoticeRun, reactionNewBookingNoticeStore, reactionTelegramConfirmedFires, reactionTelegramConfirmedMessage, reactionTelegramConfirmedRun, reactionTelegramReminderFires, reactionTelegramReminderMessage, reactionTelegramReminderRun, slotInHours, slotsCrowded, sweepTimers, workHoursOf } from "./booking-service.logic";
 
 type Row = Record<string, any>;
 
@@ -94,6 +94,66 @@ test("slotMasterFree: slotInHours: the day is the day of the zone, not of UTC", 
 test("slotMasterFree: slotInHours: a record that crosses the interval is refused", () => {
   const span = { start: new Date("2030-07-02T15:30:00.000Z"), end: new Date("2030-07-02T17:30:00.000Z") };
   assert.equal(slotInHours(span, "America/New_York", [[[540,1020]],[[540,720],[780,1020]],[[540,1020]],[[540,1020]],[[540,1020]],[],[]], ["2030-07-04","12-25"]), false);
+});
+
+test("slotMasterFree: workHoursOf: a weekday morning fits", () => {
+  const days = workHoursOf("mon-fri 09:00-13:00 14:00-18:00; sat 10:00-14:00");
+  assert.ok(days);
+  const span = { start: new Date("2030-01-07T10:00:00.000Z"), end: new Date("2030-01-07T11:00:00.000Z") };
+  assert.equal(slotInHours(span, "UTC", days, holidaysOf("")), true);
+});
+
+test("slotMasterFree: workHoursOf: the break in the middle of the day does not fit", () => {
+  const days = workHoursOf("mon-fri 09:00-13:00 14:00-18:00; sat 10:00-14:00");
+  assert.ok(days);
+  const span = { start: new Date("2030-01-07T13:00:00.000Z"), end: new Date("2030-01-07T14:00:00.000Z") };
+  assert.equal(slotInHours(span, "UTC", days, holidaysOf("")), false);
+});
+
+test("slotMasterFree: workHoursOf: a Saturday has its own hours", () => {
+  const days = workHoursOf("mon-fri 09:00-13:00 14:00-18:00; sat 10:00-14:00");
+  assert.ok(days);
+  const span = { start: new Date("2030-01-12T11:00:00.000Z"), end: new Date("2030-01-12T12:00:00.000Z") };
+  assert.equal(slotInHours(span, "UTC", days, holidaysOf("")), true);
+});
+
+test("slotMasterFree: workHoursOf: after the closing of a Saturday does not fit", () => {
+  const days = workHoursOf("mon-fri 09:00-13:00 14:00-18:00; sat 10:00-14:00");
+  assert.ok(days);
+  const span = { start: new Date("2030-01-12T15:00:00.000Z"), end: new Date("2030-01-12T16:00:00.000Z") };
+  assert.equal(slotInHours(span, "UTC", days, holidaysOf("")), false);
+});
+
+test("slotMasterFree: workHoursOf: a day with no hours written is a day off", () => {
+  const days = workHoursOf("mon-fri 09:00-13:00 14:00-18:00; sat 10:00-14:00");
+  assert.ok(days);
+  const span = { start: new Date("2030-01-13T10:00:00.000Z"), end: new Date("2030-01-13T11:00:00.000Z") };
+  assert.equal(slotInHours(span, "UTC", days, holidaysOf("")), false);
+});
+
+test("slotMasterFree: workHoursOf: a day in a stretch of days off does not fit", () => {
+  const days = workHoursOf("mon-fri 09:00-13:00 14:00-18:00; sat 10:00-14:00");
+  assert.ok(days);
+  const span = { start: new Date("2030-07-08T10:00:00.000Z"), end: new Date("2030-07-08T11:00:00.000Z") };
+  assert.equal(slotInHours(span, "UTC", days, holidaysOf("2030-07-01..2030-07-14")), false);
+});
+
+test("slotMasterFree: workHoursOf: the day after a stretch of days off fits", () => {
+  const days = workHoursOf("mon-fri 09:00-13:00 14:00-18:00; sat 10:00-14:00");
+  assert.ok(days);
+  const span = { start: new Date("2030-07-15T10:00:00.000Z"), end: new Date("2030-07-15T11:00:00.000Z") };
+  assert.equal(slotInHours(span, "UTC", days, holidaysOf("2030-07-01..2030-07-14")), true);
+});
+
+test("slotMasterFree: workHoursOf: a day off of every year does not fit", () => {
+  const days = workHoursOf("mon-fri 09:00-13:00 14:00-18:00; sat 10:00-14:00");
+  assert.ok(days);
+  const span = { start: new Date("2030-12-25T10:00:00.000Z"), end: new Date("2030-12-25T11:00:00.000Z") };
+  assert.equal(slotInHours(span, "UTC", days, holidaysOf("nonsense, 12-25")), false);
+});
+
+test("slotMasterFree: workHoursOf: hours it cannot read leave the block's own", () => {
+  for (const text of ["","funday 09:00-18:00","mon 18:00-09:00","mon-fri"]) assert.equal(workHoursOf(text), undefined);
 });
 
 test("slotMasterFree: slotsCrowded: time shared with another is crowded", () => {
@@ -297,6 +357,50 @@ test("reactionBookingReminderNotice: Booking Reminder Notice: creates the record
   await reactionBookingReminderNoticeRun(undefined, {"id":"r1","status":"confirmed","masterId":"copied","clientName":"copied","clientPhone":"copied","startsAt":"copied"});
   assert.equal(made.length, 1);
   assert.equal(made[0]?.table, "notice");
+});
+
+test("reactionTelegramConfirmed: Telegram Confirmed: follows a record that meets its conditions", () => {
+  assert.equal(reactionTelegramConfirmedFires({"id":"r1","startsAt":"<startsAt>","clientTelegramId":"4242","status":"confirmed"}, {"id":"r1","startsAt":"<startsAt>","clientTelegramId":"4242","status":"confirmed"}), true);
+});
+
+test("reactionTelegramConfirmed: Telegram Confirmed: does not follow a record that breaks a condition", () => {
+  assert.equal(reactionTelegramConfirmedFires({"id":"r1","startsAt":"<startsAt>","clientTelegramId":"4242","status":"confirmed"}, {"id":"r1","startsAt":"<startsAt>","clientTelegramId":"4242","status":"confirmed-other"}), false);
+});
+
+test("reactionTelegramConfirmed: Telegram Confirmed: sends the messenger to the address of the record, and nothing without one", async () => {
+  const sent: any[] = [];
+  const client = {
+    sendMessage: async (message: any) => void sent.push(message),
+  };
+  await reactionTelegramConfirmedRun(client, {"id":"r1","startsAt":"<startsAt>","clientTelegramId":"4242","status":"confirmed"});
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].to, "4242");
+  assert.equal(sent[0].text, reactionTelegramConfirmedMessage({"id":"r1","startsAt":"<startsAt>","clientTelegramId":"4242","status":"confirmed"}, (value) => String(value ?? "")));
+  sent.length = 0;
+  await reactionTelegramConfirmedRun(client, {"id":"r1","startsAt":"<startsAt>","clientTelegramId":"","status":"confirmed"});
+  assert.equal(sent.length, 0);
+});
+
+test("reactionTelegramReminder: Telegram Reminder: follows a record that meets its conditions", () => {
+  assert.equal(reactionTelegramReminderFires({"id":"r1","startsAt":"<startsAt>","clientTelegramId":"4242","status":"confirmed"}, {"id":"r1","startsAt":"<startsAt>","clientTelegramId":"4242","status":"confirmed"}), true);
+});
+
+test("reactionTelegramReminder: Telegram Reminder: does not follow a record that breaks a condition", () => {
+  assert.equal(reactionTelegramReminderFires({"id":"r1","startsAt":"<startsAt>","clientTelegramId":"4242","status":"confirmed"}, {"id":"r1","startsAt":"<startsAt>","clientTelegramId":"4242","status":"confirmed-other"}), false);
+});
+
+test("reactionTelegramReminder: Telegram Reminder: sends the messenger to the address of the record, and nothing without one", async () => {
+  const sent: any[] = [];
+  const client = {
+    sendMessage: async (message: any) => void sent.push(message),
+  };
+  await reactionTelegramReminderRun(client, {"id":"r1","startsAt":"<startsAt>","clientTelegramId":"4242","status":"confirmed"});
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].to, "4242");
+  assert.equal(sent[0].text, reactionTelegramReminderMessage({"id":"r1","startsAt":"<startsAt>","clientTelegramId":"4242","status":"confirmed"}, (value) => String(value ?? "")));
+  sent.length = 0;
+  await reactionTelegramReminderRun(client, {"id":"r1","startsAt":"<startsAt>","clientTelegramId":"","status":"confirmed"});
+  assert.equal(sent.length, 0);
 });
 
 test("flowBookingSteps: history: a created record starts it, a changed status adds a row, an unchanged one adds nothing", async () => {

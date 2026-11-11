@@ -9,11 +9,12 @@ import { BookingStatusLogRepository } from "./booking-status-log-repository.repo
 import { CreateBookingRequestDto } from "./dto/create-booking-request.dto";
 import { PatchBookingRequestDto } from "./dto/patch-booking-request.dto";
 import { UpdateBookingRequestDto } from "./dto/update-booking-request.dto";
+import { TelegramBot } from "./telegram-bot.integration";
 import { Injectable, NotFoundException } from "@nestjs/common";
 
 @Injectable()
 export class BookingService {
-  constructor(private readonly bookingRepository: BookingRepository, private readonly bookingStatusLogRepository: BookingStatusLogRepository, private readonly bookingAuditLogRepository: BookingAuditLogRepository, private readonly bookingIdempotencyKeyRepository: BookingIdempotencyKeyRepository) {}
+  constructor(private readonly bookingRepository: BookingRepository, private readonly bookingStatusLogRepository: BookingStatusLogRepository, private readonly bookingAuditLogRepository: BookingAuditLogRepository, private readonly bookingIdempotencyKeyRepository: BookingIdempotencyKeyRepository, private readonly telegramBot: TelegramBot) {}
 
   listBookings(query: ListQuery) {
     return this.bookingRepository.findPage(query);
@@ -23,6 +24,10 @@ export class BookingService {
     return this.bookingRepository.findPage({ offset: 0 });
   }
 
+  getBookingFree(query: ListQuery) {
+    return this.bookingRepository.findPage(query);
+  }
+
   async getBooking(id: string) {
     const record = await this.bookingRepository.findById(id);
     if (!record) throw new NotFoundException();
@@ -30,19 +35,19 @@ export class BookingService {
   }
 
   createBooking(dto: CreateBookingRequestDto) {
-    return this.bookingRepository.create({ ...dto, startsAt: new Date(dto.startsAt), createdAt: dto.createdAt === undefined ? undefined : new Date(dto.createdAt), remindedAt: dto.remindedAt === undefined ? undefined : new Date(dto.remindedAt) });
+    return this.bookingRepository.create({ ...dto, startsAt: new Date(dto.startsAt), createdAt: dto.createdAt === undefined ? undefined : new Date(dto.createdAt), remindedAt: dto.remindedAt === undefined ? undefined : new Date(dto.remindedAt), tgRemindedAt: dto.tgRemindedAt === undefined ? undefined : new Date(dto.tgRemindedAt) });
   }
 
   async updateBooking(id: string, dto: UpdateBookingRequestDto) {
     const record = await this.bookingRepository.findById(id);
     if (!record) throw new NotFoundException();
-    return this.bookingRepository.update(id, { ...dto, startsAt: dto.startsAt === undefined ? undefined : new Date(dto.startsAt), createdAt: dto.createdAt === undefined ? undefined : new Date(dto.createdAt), remindedAt: dto.remindedAt === undefined ? undefined : new Date(dto.remindedAt) });
+    return this.bookingRepository.update(id, { ...dto, startsAt: dto.startsAt === undefined ? undefined : new Date(dto.startsAt), createdAt: dto.createdAt === undefined ? undefined : new Date(dto.createdAt), remindedAt: dto.remindedAt === undefined ? undefined : new Date(dto.remindedAt), tgRemindedAt: dto.tgRemindedAt === undefined ? undefined : new Date(dto.tgRemindedAt) });
   }
 
   async patchBooking(id: string, dto: PatchBookingRequestDto) {
     const record = await this.bookingRepository.findById(id);
     if (!record) throw new NotFoundException();
-    return this.bookingRepository.update(id, { ...dto, startsAt: dto.startsAt === undefined ? undefined : new Date(dto.startsAt), createdAt: dto.createdAt === undefined ? undefined : new Date(dto.createdAt), remindedAt: dto.remindedAt === undefined ? undefined : new Date(dto.remindedAt) });
+    return this.bookingRepository.update(id, { ...dto, startsAt: dto.startsAt === undefined ? undefined : new Date(dto.startsAt), createdAt: dto.createdAt === undefined ? undefined : new Date(dto.createdAt), remindedAt: dto.remindedAt === undefined ? undefined : new Date(dto.remindedAt), tgRemindedAt: dto.tgRemindedAt === undefined ? undefined : new Date(dto.tgRemindedAt) });
   }
 
   async deleteBooking(id: string) {

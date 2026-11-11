@@ -12,6 +12,8 @@ export interface BookingRecord {
   notes?: string;
   createdAt?: Date;
   remindedAt?: Date;
+  clientTelegramId?: string;
+  tgRemindedAt?: Date;
   serviceId: string;
   masterId: string;
 }
@@ -24,6 +26,7 @@ function searchWhere(search: string | undefined) {
       { clientPhone: { contains: search, mode: "insensitive" as const } },
       { status: { contains: search, mode: "insensitive" as const } },
       { notes: { contains: search, mode: "insensitive" as const } },
+      { clientTelegramId: { contains: search, mode: "insensitive" as const } },
     ],
   };
 }
@@ -36,6 +39,8 @@ const FILTER_COLUMNS = new Map<string, FilterKind>([
   ["status", "text"],
   ["createdAt", "datetime"],
   ["remindedAt", "datetime"],
+  ["clientTelegramId", "text"],
+  ["tgRemindedAt", "datetime"],
   ["serviceId", "uuid"],
   ["masterId", "uuid"],
 ]);
@@ -71,6 +76,10 @@ function orderBy(sort: ListQuery["sort"]) {
       return [{ createdAt: direction }, { id: "asc" as const }];
     case "remindedAt":
       return [{ remindedAt: direction }, { id: "asc" as const }];
+    case "clientTelegramId":
+      return [{ clientTelegramId: direction }, { id: "asc" as const }];
+    case "tgRemindedAt":
+      return [{ tgRemindedAt: direction }, { id: "asc" as const }];
     case "serviceId":
       return [{ serviceId: direction }, { id: "asc" as const }];
     case "masterId":

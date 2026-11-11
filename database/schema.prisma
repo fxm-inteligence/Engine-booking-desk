@@ -25,6 +25,8 @@ model Master {
   specialty String?
   phone String?
   createdAt DateTime? @default(now())
+  workHours String? @default("mon-fri 10:00-20:00; sat 10:00-18:00")
+  daysOff String?
   bookings Booking[]
 }
 
@@ -45,6 +47,8 @@ model Booking {
   notes String? @db.Text
   createdAt DateTime? @default(now())
   remindedAt DateTime?
+  clientTelegramId String?
+  tgRemindedAt DateTime?
   serviceId String @db.Uuid
   service Service @relation(fields: [serviceId], references: [id])
   masterId String @db.Uuid

@@ -34,6 +34,16 @@ export class CreateBookingRequestDto {
   @IsDateString()
   remindedAt?: string;
 
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  clientTelegramId?: string;
+
+  @ApiPropertyOptional({ type: String, format: "date-time" })
+  @IsOptional()
+  @IsDateString()
+  tgRemindedAt?: string;
+
   @ApiProperty({ type: String, format: "uuid" })
   @IsUUID()
   serviceId: string;

@@ -37,6 +37,16 @@ export class PatchBookingRequestDto {
   @IsDateString()
   remindedAt?: string;
 
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  clientTelegramId?: string;
+
+  @ApiPropertyOptional({ type: String, format: "date-time" })
+  @IsOptional()
+  @IsDateString()
+  tgRemindedAt?: string;
+
   @ApiPropertyOptional({ type: String, format: "uuid" })
   @IsOptional()
   @IsUUID()

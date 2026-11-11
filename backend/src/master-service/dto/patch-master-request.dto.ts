@@ -21,4 +21,14 @@ export class PatchMasterRequestDto {
   @IsOptional()
   @IsDateString()
   createdAt?: string;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  workHours?: string;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  daysOff?: string;
 }

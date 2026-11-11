@@ -83,9 +83,60 @@ function localMoment(date: Date, timezone: string) {
 export function slotInHours(mine: Span, timezone: string, days: [number, number][][], holidays: readonly string[]): boolean {
   const from = localMoment(mine.start, timezone);
   const to = localMoment(mine.end, timezone);
-  if (holidays.includes(from.key) || holidays.includes(from.key.slice(5))) return false;
+  if (holidays.some((holiday) => holidayHit(holiday, from.key))) return false;
   const closing = to.day === from.day ? to.seconds : to.day === from.day + 1 && to.seconds === 0 ? 86_400 : -1;
   return (days[from.weekday] ?? []).some(([open, close]) => closing >= 0 && open * 60 <= from.seconds && closing <= close * 60);
+}
+
+/** True when the local date `key` (YYYY-MM-DD) is the holiday: that day, that day of every year (MM-DD), or a day of a stretch (YYYY-MM-DD..YYYY-MM-DD). */
+function holidayHit(holiday: string, key: string): boolean {
+  const [first = "", last] = holiday.split("..");
+  return last === undefined ? first === key || first === key.slice(5) : first <= key && key <= last;
+}
+
+/** The hours a master writes, like `mon-fri 09:00-13:00 14:00-18:00; sat 10:00-14:00`, as the intervals of each weekday in minutes, Monday first. Nothing when it is empty or unreadable. */
+export function workHoursOf(text: string): [number, number][][] | undefined {
+  const names = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+  const days: [number, number][][] = names.map(() => []);
+  let written = false;
+  for (const part of text.split(/[;\n]/)) {
+    const [dayNames = "", ...times] = part.trim().split(/ +/);
+    if (dayNames === "") continue;
+    const weekdays: number[] = [];
+    for (const name of dayNames.toLowerCase().split(",")) {
+      const range = name.split("-");
+      const first = names.indexOf(range[0] ?? "");
+      const last = range.length === 1 ? first : names.indexOf(range[1] ?? "");
+      if (range.length > 2 || first < 0 || last < 0) return undefined;
+      for (let day = first; ; day = (day + 1) % 7) {
+        weekdays.push(day);
+        if (day === last) break;
+      }
+    }
+    if (times.length === 0) return undefined;
+    for (const time of times) {
+      const match = /^([0-9]{1,2}):([0-9]{2})-([0-9]{1,2}):([0-9]{2})$/.exec(time);
+      const open = match ? Number(match[1]) * 60 + Number(match[2]) : -1;
+      const close = match ? Number(match[3]) * 60 + Number(match[4]) : -1;
+      if (!match || Number(match[2]) > 59 || Number(match[4]) > 59 || open < 0 || close > 1440 || open >= close) return undefined;
+      for (const day of weekdays) days[day]?.push([open, close]);
+    }
+    written = true;
+  }
+  return written ? days.map((intervals) => intervals.sort((a, b) => a[0] - b[0])) : undefined;
+}
+
+/** The days off a master writes, like `2030-12-31, 12-31, 2030-07-01..2030-07-14`; what is not a date is left out. */
+export function holidaysOf(text: string): string[] {
+  return text.split(/[,; \n]+/).filter((holiday) => /^([0-9]{4}-[0-9]{2}-[0-9]{2}(\.\.[0-9]{4}-[0-9]{2}-[0-9]{2})?|[0-9]{2}-[0-9]{2})$/.test(holiday));
+}
+
+/** A start time the free route offers: the moment, when it ends, and its local date and time of day. */
+export interface FreeTime {
+  start: string;
+  end: string;
+  date: string;
+  time: string;
 }
 
 /** A time that is taken, as the answer of the busy route gives it. */
@@ -130,6 +181,23 @@ const slotMasterFreeRelevant: readonly string[] = ["startsAt","masterId","status
 const slotMasterFreeDays: [number, number][][] = [[[600,1200]],[[600,1200]],[[600,1200]],[[600,1200]],[[600,1200]],[[600,1080]],[]];
 const slotMasterFreeHolidays: readonly string[] = ["01-01","01-02","01-03","01-04","01-05","01-06","01-07","01-08","02-23","03-08","05-01","05-09","06-12","11-04"];
 
+/** The hours of the "masterId" a record is for: the "workHours" and the "daysOff" of the Master it names. The block's own hours stay when there is no such row, no hours written in it, or no database to ask. */
+async function slotMasterFreeHours(resource: Row[string]): Promise<{ days: [number, number][][]; holidays: readonly string[] }> {
+  const block = { days: slotMasterFreeDays, holidays: slotMasterFreeHolidays };
+  if (resource === undefined || resource === null || !process.env.DATABASE_URL) return block;
+  prisma ??= ambient(new PrismaClient());
+  try {
+    const found = (await prisma.master.findUnique({ where: { id: resource } })) as Row | null;
+    return {
+      days: workHoursOf(String(found?.["workHours"] ?? "")) ?? block.days,
+      holidays: [...block.holidays, ...holidaysOf(String(found?.["daysOff"] ?? ""))],
+    };
+  } catch {
+    // A key the table cannot hold (not a uuid, say) names no row: the block's hours apply.
+    return block;
+  }
+}
+
 /** How long a record takes: the "durationMinutes" of the Service its "serviceId" names; 60 minutes when there is no such record, or no database to ask. */
 async function slotMasterFreeMinutes(row: Row): Promise<number> {
   const key = row["serviceId"];
@@ -157,10 +225,11 @@ async function slotMasterFreeCheck(repository: BookingRepository, next: Row, ign
   if (changed && !slotMasterFreeRelevant.some((name) => changed[name] !== undefined)) return;
   const mine = await slotMasterFreeSpan(next);
   if (!mine || slotMasterFreeFree.includes(next["status"])) return;
-  if (!slotInHours(mine, "Europe/Moscow", slotMasterFreeDays, slotMasterFreeHolidays)) {
+  const resource = next["masterId"];
+  const hours = await slotMasterFreeHours(resource);
+  if (!slotInHours(mine, "Europe/Moscow", hours.days, hours.holidays)) {
     throw new ConflictException("Салон в это время закрыт");
   }
-  const resource = next["masterId"];
   const page = await repository.findPage({ search: undefined, offset: 0 });
   const taken: Span[] = [];
   for (const other of page.items as Row[]) {
@@ -193,6 +262,45 @@ async function slotMasterFreeBusy(rows: Row[]): Promise<BusyTime[]> {
     }
   }
   return busy;
+}
+
+/**
+ * The start times a record could take on the local day `filters.date` (YYYY-MM-DD, "Europe/Moscow") for `filters.minutes`, or the length of the "serviceId" that `filters.lengthKey` names (60 when neither is given): every 30 minutes of
+ * the clock, in the future, that the hours of the check allow and no other record crowds, tried with the same functions the check of a record uses.
+ * A missing or unreadable date asks about no day: nothing is offered.
+ */
+async function slotMasterFreeFreeTimes(rows: Row[], filters: Record<string, string>): Promise<FreeTime[]> {
+  const date = filters.date ?? "";
+  const base = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) ? Date.parse(date + "T00:00:00Z") : Number.NaN;
+  if (Number.isNaN(base)) return [];
+  const asked = Number(filters.minutes);
+  const minutes = Number.isInteger(asked) && asked > 0 ? asked : await slotMasterFreeMinutes({ "serviceId": filters.lengthKey });
+  const resource = filters["masterId"];
+  const hours = await slotMasterFreeHours(resource);
+  const taken: Span[] = [];
+  for (const other of rows) {
+    if ((other["masterId"] ?? null) !== (resource ?? null)) continue;
+    if (slotMasterFreeFree.includes(other["status"])) continue;
+    const span = await slotMasterFreeSpan(other);
+    if (span) taken.push(span);
+  }
+  const now = Date.now();
+  const offered: FreeTime[] = [];
+  for (let at = base - 14 * 3_600_000; at <= base + 36 * 3_600_000; at += 300_000) {
+    const start = new Date(at);
+    const local = localMoment(start, "Europe/Moscow");
+    if (local.key !== date || local.seconds % 1800 !== 0 || at <= now) continue;
+    const mine = { start, end: new Date(at + minutes * 60_000) };
+    if (!slotInHours(mine, "Europe/Moscow", hours.days, hours.holidays)) continue;
+    if (slotsCrowded(mine, taken, 1, 0)) continue;
+    offered.push({
+      start: start.toISOString(),
+      end: mine.end.toISOString(),
+      date: local.key,
+      time: String(Math.floor(local.seconds / 3600)).padStart(2, "0") + ":" + String(Math.floor((local.seconds % 3600) / 60)).padStart(2, "0"),
+    });
+  }
+  return offered;
 }
 
 function limitWindow(date: Date, period: "day" | "week" | "month"): [string, string] {
@@ -411,8 +519,56 @@ export async function reactionBookingReminderNoticeRun(integration: any, record:
   await reactionBookingReminderNoticeStore.create("notice", { "masterId": record["masterId"], "clientName": record["clientName"], "clientPhone": record["clientPhone"], "startsAt": record["startsAt"], "kind": "reminder" });
 }
 
+// Reaction "Telegram Confirmed"
+/** True when the record, saved by a call that left it as `after` (and found it as `before`), is one this Reaction follows. */
+export function reactionTelegramConfirmedFires(before: Row | null, after: Row): boolean {
+  if (text(after["status"]) !== "confirmed") return false;
+  return true;
+}
+
+export function reactionTelegramConfirmedSubject(record: Row): string {
+  return "";
+}
+
+/** The text with each Field made safe by `fill`: for a letter it is written as HTML. */
+export function reactionTelegramConfirmedMessage(record: Row, fill: (value: unknown) => string): string {
+  return "Ваша запись подтверждена: " + fill(record["startsAt"]) + ". Ждём вас!";
+}
+
+/** What the Reaction does: the `integration` is the client it sends through (none for a record in another table). */
+export async function reactionTelegramConfirmedRun(integration: any, record: Row): Promise<void> {
+  const chat = text(record["clientTelegramId"]);
+  if (chat === "") return;
+  await integration.sendMessage({ to: chat, text: reactionTelegramConfirmedMessage(record, text) });
+}
+
+// Reaction "Telegram Reminder"
+/** True when the record, saved by a call that left it as `after` (and found it as `before`), is one this Reaction follows. */
+export function reactionTelegramReminderFires(before: Row | null, after: Row): boolean {
+  if (text(after["status"]) !== "confirmed") return false;
+  return true;
+}
+
+export function reactionTelegramReminderSubject(record: Row): string {
+  return "";
+}
+
+/** The text with each Field made safe by `fill`: for a letter it is written as HTML. */
+export function reactionTelegramReminderMessage(record: Row, fill: (value: unknown) => string): string {
+  return "Напоминаем: вы записаны на " + fill(record["startsAt"]) + ".";
+}
+
+/** What the Reaction does: the `integration` is the client it sends through (none for a record in another table). */
+export async function reactionTelegramReminderRun(integration: any, record: Row): Promise<void> {
+  const chat = text(record["clientTelegramId"]);
+  if (chat === "") return;
+  await integration.sendMessage({ to: chat, text: reactionTelegramReminderMessage(record, text) });
+}
+
 const reactionCalls: Record<string, "create" | "update" | "remove"> = {
   "createBooking": "create",
+  "updateBooking": "update",
+  "patchBooking": "update",
 };
 
 /** Wraps the calls of the Service that create, change or delete a record so each Reaction follows the record they save. Apply after `withHooks`, inside `lockSlots`. */
@@ -429,6 +585,11 @@ export function keepReactions<T extends object>(target: T): T {
         if (kind === "create") {
         if (reactionNewBookingNoticeFires(before, after)) {
           await reactionNewBookingNoticeRun(undefined, after);
+        }
+      }
+        if (kind === "update") {
+        if (reactionTelegramConfirmedFires(before, after)) {
+          reactionTelegramConfirmedRun((this as any).telegramBot, after).catch((error) => console.error("Reaction Telegram Confirmed failed", error));
         }
       }
       }
@@ -624,9 +785,17 @@ export function keepIdempotency<T extends object>(target: T): T {
   return target;
 }
 
-// Timers of Status Flow "Booking Steps"
-const flowBookingStepsTimers: readonly { from: string; to: string; seconds: number }[] = [
-  { from: "new", to: "cancelled", seconds: 86400 },
+/** A time the owner may change in the environment: "90m", "24h", "2d", "45s" or a number of seconds. Empty or unreadable keeps the Block's own time. */
+function durationEnv(name: string, fallback: number): number {
+  const match = /^([0-9]+) *([smhd]?)$/i.exec((process.env[name] ?? "").trim());
+  const unit = (match?.[2] ?? "s").toLowerCase();
+  const seconds = match ? Number(match[1]) * (unit === "d" ? 86400 : unit === "h" ? 3600 : unit === "m" ? 60 : 1) : 0;
+  return seconds > 0 ? seconds : fallback;
+}
+
+// Timers of Status Flow "Booking Steps"; each time can be changed in the environment
+const flowBookingStepsTimers = (): readonly { from: string; to: string; seconds: number }[] => [
+  { from: "new", to: "cancelled", seconds: durationEnv("FLOW_BOOKING_STEPS_NEW_TO_CANCELLED_AFTER", 86400) },
 ];
 
 /** True when a record that moved into its status at `since` (seconds since the epoch) has stayed in it for `seconds`. A record the history knows nothing about never is. */
@@ -639,7 +808,7 @@ async function flowBookingStepsSweep(this: any): Promise<void> {
   const repository = (this as any).bookingRepository as BookingRepository;
   const log = (this as any).bookingStatusLogRepository as BookingStatusLogRepository;
   const now = Date.now() / 1000;
-  for (const timer of flowBookingStepsTimers) {
+  for (const timer of flowBookingStepsTimers()) {
     const since = new Map<string, number>();
     const entries = (await log.findPage({ search: timer.from, offset: 0 })).items as Row[];
     for (const entry of entries) {
@@ -666,7 +835,7 @@ async function reactionBookingReminderNoticeSweep(this: any): Promise<void> {
   const repository = (this as any).bookingRepository as BookingRepository;
   const filters = {
     "startsAt_from": new Date().toISOString(),
-    "startsAt_to": new Date(Date.now() + 86400000).toISOString(),
+    "startsAt_to": new Date(Date.now() + durationEnv("REACTION_BOOKING_REMINDER_NOTICE_BEFORE", 86400) * 1000).toISOString(),
   };
   for (let offset = 0; ; offset += 100) {
     const page = (await repository.findPage({ offset, limit: 100, filters })).items as Row[];
@@ -684,9 +853,34 @@ async function reactionBookingReminderNoticeSweep(this: any): Promise<void> {
   }
 }
 
+// Reaction "Telegram Reminder" before the time in startsAt
+/** Gives the Reaction to each record whose startsAt is within 86400 seconds and that has not had it yet. */
+async function reactionTelegramReminderSweep(this: any): Promise<void> {
+  const repository = (this as any).bookingRepository as BookingRepository;
+  const filters = {
+    "startsAt_from": new Date().toISOString(),
+    "startsAt_to": new Date(Date.now() + durationEnv("REACTION_TELEGRAM_REMINDER_BEFORE", 86400) * 1000).toISOString(),
+  };
+  for (let offset = 0; ; offset += 100) {
+    const page = (await repository.findPage({ offset, limit: 100, filters })).items as Row[];
+    for (const record of page) {
+      if (text(record["tgRemindedAt"]) !== "" || !reactionTelegramReminderFires(null, record)) continue;
+      try {
+        await this.patchBooking(record["id"], { ["tgRemindedAt"]: new Date() });
+      } catch (error) {
+        console.error("Reaction Telegram Reminder could not mark a record:", error);
+        continue;
+      }
+      reactionTelegramReminderRun((this as any).telegramBot, record).catch((error) => console.error("Reaction Telegram Reminder failed", error));
+    }
+    if (page.length < 100) break;
+  }
+}
+
 export async function sweepTimers(this: any): Promise<void> {
   await flowBookingStepsSweep.call(this);
   await reactionBookingReminderNoticeSweep.call(this);
+  await reactionTelegramReminderSweep.call(this);
 }
 
 /** Looks every 60 seconds, one look at a time, for records whose time in a status is up, that have grown old or whose time a Reaction waits for is near. */
@@ -751,6 +945,12 @@ export const logicHooks: Hooks<BookingService> = {
     async getBookingBusy(this: any, result: any): Promise<any> {
       const busy = (await Promise.all([slotMasterFreeBusy(result.items)])).flat();
       return busy.sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+    },
+    async getBookingFree(this: any, result: any, query: any): Promise<any> {
+      const lists: FreeTime[][] = await Promise.all([slotMasterFreeFreeTimes(result.items, query?.filters ?? {})]);
+      const others = lists.slice(1).map((list) => new Set(list.map((time) => time.start)));
+      const times = (lists[0] ?? []).filter((time) => others.every((starts) => starts.has(time.start)));
+      return { items: times, total: times.length };
     },
   },
 };

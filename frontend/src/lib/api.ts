@@ -101,6 +101,8 @@ export async function apiRequest<T = unknown>(
   const captcha = typeof window === "undefined" ? undefined : (window as unknown as { captchaToken?: () => string }).captchaToken;
   const captchaToken = captcha && (options.method ?? "GET") === "POST" ? captcha() : "";
   if (captchaToken) headers["X-Captcha-Token"] = captchaToken;
+  const locale = typeof document === "undefined" ? undefined : document.cookie.split("; ").find((entry) => entry.startsWith("locale="))?.slice(7);
+  if (locale) headers["Accept-Language"] = locale;
   const response = await fetch(apiUrl(path), {
     method: options.method ?? "GET",
     credentials: "include",
